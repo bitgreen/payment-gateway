@@ -232,12 +232,16 @@ async function makePayment(){
    tokenAddress='0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7';  //USDT on Avalanche
   if(chainId==1  && p=="USDT")    //Ethereum Mainnet
     tokenAddress='0xdac17f958d2ee523a2206206994597c13d831ec7';  //USDT on Ethereum
+  if(chainId==5  && p=="USDT")    //Ethereum Testnet
+    tokenAddress='0xe583769738b6dd4E7CAF8451050d1948BE717679';  //USDT on Ethereum    
  if(chainId==137 && p=="USDC")  // Polygon Mainnet
     tokenAddress='0x2791bca1f2de4661ed88a30c99a7a9449aa84174';	//USDC on Polygon
  if(chainId==43114  && p=="USDC") // Avalanche C-Chain Mainnet
    tokenAddress='0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E';  //USDC on Avalanche
   if(chainId==1  && p=="USDC")    //Ethereum Mainnet
     tokenAddress='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb487';  //USDC on Ethereum  
+  if(chainId==5  && p=="USDC")    //Ethereum testnet Goerlli
+    tokenAddress='0x07865c6e87b9f70255377e024ace6630c1eaa37f';  //USDC on Ethereum      
   if(tokenAddress==''){
     console.log("Network not supported for the payment");
     document.querySelector("#msg").innerHTML='<div class="alert alert-danger" role="alert" id="msg">Selected network is not yet supported for payments. Chainid: ['+chainId+']</div>';
