@@ -33,7 +33,8 @@ async function mainloop(){
         let rp=req.query.rp;
         let rnp=req.query.rnp;
         let d=req.query.d;
-        console.log("Received call - p: ",p,"a: ",a,"r: ",r,"rp: ","rp: ",rp,"rnp: ",rnp," d: ",d);
+        let o=req.query.o;
+        console.log("Received call - p: ",p,"a: ",a,"r: ",r,"rp: ","rp: ",rp,"rnp: ",rnp," d: ",d,"o: ",o);
         // p is the payment method: 
         // r is the referenceid
         // rp is the url to redirect for successfully payment
@@ -46,6 +47,7 @@ async function mainloop(){
             res.cookie('rp',rp);
             res.cookie('rnp',rnp);
             res.cookie('d',d);
+            res.cookie('o',o);
             //USDT or USDT
             if(p=='USDC' || p=='USDT'){
                 res.send(read_file("html/usdstable.html"));                
@@ -107,6 +109,12 @@ async function mainloop(){
             console.log(v);
             return;
         }
+        if(chainid===undefined || chainid==0){
+            let v="ERROR - chainid is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
         // check for the same referenceid already present
         let rs;
         try{
@@ -119,8 +127,8 @@ async function mainloop(){
         // insert new record            
         if(rs.rows[0]['tot']==0){
             try {
-              const queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress) values($1,$2,$3,$4,$5,current_timestamp,$6)';
-              await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress]);
+              const queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress,chainid) values($1,$2,$3,$4,$5,current_timestamp,$6,$7)';
+              await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,chainid]);
             } catch (e) {
                 throw e;
             }
@@ -128,8 +136,8 @@ async function mainloop(){
         else {
         // update some fields only to avoid an injection attack to replace the orderid to associate the payment to a different orderid
             try {
-              const queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,created_on=current_timestamp where referenceid=$5';
-              await client.query(queryText, [token,sender,recipient,amount,referenceid]);
+              const queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,chainid=$5,created_on=current_timestamp where referenceid=$5';
+              await client.query(queryText, [token,sender,recipient,amount,referenceid,chainid]);
             } catch (e) {
                 throw e;
             }            
