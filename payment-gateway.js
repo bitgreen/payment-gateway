@@ -64,21 +64,77 @@ async function mainloop(){
         }
     });
     // function to store a payment request
-    app.get('/paymentrequest', function (req, res) {
-        res.cookie('p', p);
-        res.cookie('a',a);
-        res.cookie('r',r);
-        res.cookie('rp',rp);
-        res.cookie('rnp',rnp);
-        res.cookie('d',d);
-        res.cookie('sender',sender);        
-        res.cookie('recipient',recipient);
-/*        try {
-               const queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on) values($1,$2,$3,$4,$5,,current_timestamp)';
-               const res = await client.query(queryText, r,p,sender,recipient,a);
+    app.get('/paymentrequest', async function (req, res) {
+        let token=req.query.token;    
+        let referenceid=req.query.referenceid;
+        let sender=req.query.sender;
+        let recipient=req.query.recipient;
+        let originaddress=req.query.originaddress;
+        let amount=req.query.amount;
+        if(token !="USDT" && token !="USDC"){
+            let v="ERROR - Not supported token";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        if(referenceid===undefined){
+            let v="ERROR - referenceid is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        if(sender===undefined){
+            let v="ERROR - sender is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        if(recipient===undefined){
+            let v="ERROR - recipient is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        if(originaddress===undefined){
+            let v="ERROR - originaddress is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        if(amount===undefined || amount==0){
+            let v="ERROR - amount is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        // check for the same referenceid already present
+        let rs;
+        try{
+            const queryText="SELECT COUNT(*) AS tot from paymentrequests where referenceid=$1";
+            rs=await client.query(queryText, [referenceid]);
+            //console.log(rs);
             } catch (e) {
                 throw e;
-            }*/
+            }
+        // insert new record            
+        if(rs.rows[0]['tot']==0){
+            try {
+              const queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress) values($1,$2,$3,$4,$5,current_timestamp,$6)';
+              await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress]);
+            } catch (e) {
+                throw e;
+            }
+        }
+        else {
+        // update some fields only to avoid an injection attack to replace the orderid to associate the payment to a different orderid
+            try {
+              const queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,created_on=current_timestamp where referenceid=$5';
+              await client.query(queryText, [token,sender,recipient,amount,referenceid]);
+            } catch (e) {
+                throw e;
+            }            
+        }
+            res.send("OK");
     });
     app.use(express.static('html'));
         
