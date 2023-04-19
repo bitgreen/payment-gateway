@@ -96,8 +96,17 @@ async function fetchAccountData() {
   chainId = await web3.eth.getChainId();
   console.log("chainId: ",chainId);
   // Load chain information over an HTTP API
-  const chainData = evmChains.getChain(chainId);
-  document.querySelector("#network-name").textContent = chainData.name;
+  let chainName="";
+  try {
+    const chainData = evmChains.getChain(chainId);
+    chainName=chainData.name;    
+  }catch(e){
+
+    if(chainId==11155111)
+      chainName="Sepolia Ethereum";
+    
+  }
+  document.querySelector("#network-name").textContent = chainName;
 
   // Get list of accounts of the connected wallet
   const accounts = await web3.eth.getAccounts();
@@ -185,13 +194,7 @@ async function onConnect() {
   });
 
   // Subscribe to chainId change
-  /*
   provider.on("chainChanged", (chainId) => {
-    fetchAccountData();
-  });
-  */
-  // Subscribe to networkId change
-  provider.on("networkChanged", (networkId) => {
     fetchAccountData();
   });
 
@@ -243,6 +246,8 @@ async function makePayment(){
     tokenAddress='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb487';  //USDC on Ethereum  
   if(chainId==5  && p=="USDC")    //Ethereum testnet Goerlli
     tokenAddress='0x07865c6e87b9f70255377e024ace6630c1eaa37f';  //USDC on Ethereum      
+  if(chainId==11155111  && p=="USDT")    //Ethereum testnet Sepolia
+    tokenAddress='0xef632af93FF9cEDc7c40069861b67c13b31aeb8E';  //USDT on Ethereum Sepolia
   if(tokenAddress==''){
     console.log("Network not supported for the payment");
     document.querySelector("#msg").innerHTML='<div class="alert alert-danger" role="alert" id="msg">Selected network is not yet supported for payments. Chainid: ['+chainId+']</div>';

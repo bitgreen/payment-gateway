@@ -6,42 +6,43 @@ const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
 // read environment variables
 const TOKENADDRESS = process.env.TOKENADDRESS;
-if (TOKENADDRESS===undefined){
+if (typeof TOKENADDRESS==='undefined'){
     console.log("TOKENADDRESS variable is not set, please set it for launching the validator. It's the address of the the token to validate");
     process.exit();
 }
 const ABI = process.env.ABI;
-if (ABI===undefined){
+if (typeof ABI==='undefined'){
     console.log("ABI variable is not set, please set it for launching the validator. It's the file where to read the ABI of the contract");
     process.exit();
 }
 const ABIJSON=fs.readFileSync(ABI,"ascii");
 //console.log("ABIJSON: ",ABIJSON);
 const WALLETADDRESS = process.env.WALLETADDRESS;
-if (WALLETADDRESS===undefined){
+if (typeof WALLETADDRESS==='undefined'){
     console.log("WALLETADDRESS variable is not set, please set it for launching the validator. It's the address of the the recipient wallet");
     process.exit();
 }
 const BLOCKCHAIN = process.env.BLOCKCHAIN;
-if (BLOCKCHAIN===undefined){
+if (typeof BLOCKCHAIN==='undefined'){
     console.log("BLOCKCHAIN variable is not set, please set it for launching the validator");
     process.exit();
 }
 const BLOCKCHAINCODE = process.env.BLOCKCHAINCODE;
-if (BLOCKCHAINCODE===undefined){
+if (typeof BLOCKCHAINCODE==='undefined'){
     console.log("BLOCKCHAINCODE variable is not set, please set it for launching the validator");
     process.exit();
 }
 const MNEMONIC = process.env.MNEMONIC;
-if (MNEMONIC===undefined){
+if (typeof MNEMONIC==='undefined'){
     console.log("MNEMONIC variable is not set, please set it for launching the validator");
     process.exit();
 }
 const BITGREENBLOCKCHAIN = process.env.BITGREENBLOCKCHAIN;
-if (BITGREENBLOCKCHAIN===undefined){
+if (typeof BITGREENBLOCKCHAIN=='=undefined'){
     console.log("BITGREENBLOCKCHAIN variable is not set, please set it for launching the validator");
     process.exit();
 }
+//console.log(BLOCKCHAIN);
 const client = new Client();
 // connect EVM blockchain
 const web3 = new Web3(BLOCKCHAIN || "ws://localhost:8545");
@@ -54,7 +55,7 @@ async function mainloop(){
     const api = await ApiPromise.create({ provider: wsProvider });
     const keyring = new Keyring({ type: 'sr25519' });
     let keys=keyring.createFromUri(MNEMONIC);
-    console.log(keys.address);
+    console.log("Validator Address: ",keys.address);
     // connect to database
      await client.connect();
 
@@ -73,7 +74,7 @@ async function mainloop(){
         , function(error, result){
         if (error)
             console.log(error);
-    }).on("data", function(event){
+    }).on("data", async function(event){
     if (event.topics.length == 3) {
         const abi= [{
             type: 'address',
@@ -88,38 +89,41 @@ async function mainloop(){
             name: 'value',
             indexed: false
         }];
-    //console.log("tx hash: ",event['transactionHash']);
-    let transaction = web3.eth.abi.decodeLog(abi,event.data,[event.topics[1], event.topics[2], event.topics[3]]);
+        //console.log("tx hash: ",event['transactionHash']);
+        let transaction = web3.eth.abi.decodeLog(abi,event.data,[event.topics[1], event.topics[2], event.topics[3]]);
         console.log("******************************************");
         //console.log(transaction);
         console.log("### from:",transaction['from']," to: ",transaction['to']," value: ",transaction['value']);
         let rs;
-        if(transaction['to']==WALLETADDRESS){
+        if(transaction['to']==WALLETADDRESS) {
             console.log("#######################################");
             console.log("PAYMENT RECEIVED");
             console.log("#######################################");
             // get orderid
             let orderid=1;
-             try{
-            const queryText="SELECT orderid from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
-            let amount=transaction['value']*1000000];
-            rs=await client.query(queryText, [transaction['from'],transaction['to'],amount,BLOCKCHAINCODE);
-            if(rs[0]['rows']['orderid']===undefined){
-                console.log("ERROR - orderid not found");
-                return;
-            }
-            //console.log(rs);
+            try {
+                const queryText="SELECT referenceid from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
+                console.log(queryText);
+                let amount=transaction['value']/1000000;
+                console.log([transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
+                rs=await client.query(queryText, [transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
+                //console.log(rs);
+                if(rs['rowCount']==0){
+                    console.log("ERROR - referenceid not found");
+                    return;
+                }
+                //console.log(rs);
             } catch (e) {
                 throw e;
             }
             
-            validate_payment(rs[0]['rows']['orderid'],BLOCKCHAINCODE,event['transactionHash'],keys);
+            validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
         }
     }
 
     });
 }
-async function validate_payment(orderid,blockchainid,tx,keys){
+async function validate_payment(orderid,blockchainid,tx,keys,api){
 	    const validate = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
 	    // Sign and send the transaction using our account
     	    const hash = await validate.signAndSend(keys);

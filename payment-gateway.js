@@ -40,7 +40,28 @@ async function mainloop(){
         // rp is the url to redirect for successfully payment
         // rnp is the url to redirect for failed payment
         // d is the description of the purchase
-        if(p!==undefined){
+        // o is the origin address on the substrate chain
+        if(typeof p === 'undefined'){
+            res.send("ERROR - parameter p (payment method), is missing");
+            return;
+        }
+        if(p != 'USDT' && p!="USDC"){
+            res.send("ERROR - payment method (p) is wrong. it should be USDT or USDC");
+            return;
+        }
+        if(typeof r === 'undefined'){
+            res.send("ERROR - parameter r (reference id), is missing");
+            return;
+        }
+        if(typeof d === 'undefined'){
+            res.send("ERROR - parameter d (description), is missing");
+            return;
+        }
+        if(typeof o === 'undefined'){
+            res.send("ERROR - parameter o (origin address on substrate chain), is missing");
+            return;
+        }
+        if(typeof p!== 'undefined'){
             res.cookie('p', p);
             res.cookie('a',a);
             res.cookie('r',r);
@@ -72,45 +93,64 @@ async function mainloop(){
         let sender=req.query.sender;
         let recipient=req.query.recipient;
         let originaddress=req.query.originaddress;
+        let chainid=req.query.chainid;
         let amount=req.query.amount;
+        if(typeof token === 'undefined'){
+            let v="ERROR - token is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
         if(token !="USDT" && token !="USDC"){
             let v="ERROR - Not supported token";
             res.send(v);
             console.log(v);
             return;
         }
-        if(referenceid===undefined){
+        if(typeof referenceid === 'undefined'){
             let v="ERROR - referenceid is mandatory";
             res.send(v);
             console.log(v);
             return;
         }
-        if(sender===undefined){
+        if(typeof sender === 'undefined'){
             let v="ERROR - sender is mandatory";
             res.send(v);
             console.log(v);
             return;
         }
-        if(recipient===undefined){
+        if(typeof recipient === 'undefined'){
             let v="ERROR - recipient is mandatory";
             res.send(v);
             console.log(v);
             return;
         }
-        if(originaddress===undefined){
+        if(typeof originaddress === 'undefined'){
             let v="ERROR - originaddress is mandatory";
             res.send(v);
             console.log(v);
             return;
         }
-        if(amount===undefined || amount==0){
+        if(typeof amount === 'undefined'){
             let v="ERROR - amount is mandatory";
             res.send(v);
             console.log(v);
             return;
         }
-        if(chainid===undefined || chainid==0){
+         if(amount<=0){
+            let v="ERROR - amount must be > 0";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        if(typeof chainid=== 'undefined'){
             let v="ERROR - chainid is mandatory";
+            res.send(v);
+            console.log(v);
+            return;
+        }
+        if(chainid<=0){
+            let v="ERROR - chainid is wrong, must be > 0";
             res.send(v);
             console.log(v);
             return;
@@ -128,7 +168,7 @@ async function mainloop(){
         if(rs.rows[0]['tot']==0){
             try {
               const queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress,chainid) values($1,$2,$3,$4,$5,current_timestamp,$6,$7)';
-              await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,chainid]);
+              await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,parseInt(chainid)]);
             } catch (e) {
                 throw e;
             }
@@ -136,8 +176,8 @@ async function mainloop(){
         else {
         // update some fields only to avoid an injection attack to replace the orderid to associate the payment to a different orderid
             try {
-              const queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,chainid=$5,created_on=current_timestamp where referenceid=$5';
-              await client.query(queryText, [token,sender,recipient,amount,referenceid,chainid]);
+              const queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,chainid=$6,created_on=current_timestamp where referenceid=$5';
+              await client.query(queryText, [token,sender,recipient,amount,referenceid,parseInt(chainid)]);
             } catch (e) {
                 throw e;
             }            
