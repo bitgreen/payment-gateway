@@ -26,7 +26,7 @@ async function mainloop(){
     const client = new Client();
     await client.connect();
     app.get('/', function (req, res) {
-        console.log("[INFO] Sending index.html");
+
         let p=req.query.p;
         let a=req.query.a;
         let r=req.query.r;
@@ -34,6 +34,7 @@ async function mainloop(){
         let rnp=req.query.rnp;
         let d=req.query.d;
         let o=req.query.o;
+        let dp=req.query.dp;
         console.log("Received call - p: ",p,"a: ",a,"r: ",r,"rp: ","rp: ",rp,"rnp: ",rnp," d: ",d,"o: ",o);
         // p is the payment method: 
         // r is the referenceid
@@ -61,6 +62,9 @@ async function mainloop(){
             res.send("ERROR - parameter o (origin address on substrate chain), is missing");
             return;
         }
+        if(typeof dp === 'undefined'){
+            dp="[]";
+        }
         if(typeof p!== 'undefined'){
             res.cookie('p', p);
             res.cookie('a',a);
@@ -69,12 +73,14 @@ async function mainloop(){
             res.cookie('rnp',rnp);
             res.cookie('d',d);
             res.cookie('o',o);
+            res.cookie('dp',dp);
             //USDT or USDT
             if(p=='USDC' || p=='USDT'){
                 res.send(read_file("html/usdstable.html"));                
             }
         }
         if(p===undefined){
+            console.log("[INFO] Sending index.html");
             let v="";
             try{
                 v=read_file("html/index.html");    
