@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.2.1/dist/css/bootstrap.min.css"
+        integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="./usdstable.css">
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            box-sizing: content-box;
+            overflow: auto;
+
+        }
+
+        /* The Modal (background) */
+        .modal-wallet {
+            display: block;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            z-index: 1;
+            /* Sit on top */
+            padding-top: 50px;
+            /* Location of the box */
+            left: 0;
+            top: 0;
+            width: 100%;
+            /* Full width */
+            height: 100%;
+            /* Full height */
+            overflow: hidden;
+            border-radius: 4px;
+            /* Enable scroll if needed */
+            background-color: rgb(0, 0, 0);
+            /* Fallback color */
+            background-color: rgba(0, 0, 0, 0.4);
+            /* Black w/ opacity */
+        }
+
+        /* Modal Content */
+        .modal-content-wallet {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background-color: #fefefe;
+            margin: auto;
+            padding: 0;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 600px;
+            height: 660px;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+            -webkit-animation-name: animatetop;
+            -webkit-animation-duration: 0.4s;
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+        }
+
+        .arrow-icon {
+            display: none;
+        }
+
+        #transaction-btn {
+            width: 40%;
+        }
+
+        /* Add Animation */
+        @-webkit-keyframes animatetop {
+            from {
+                top: -300px;
+                opacity: 0
+            }
+
+            to {
+                top: 0;
+                opacity: 1
+            }
+        }
+
+        @keyframes animatetop {
+            from {
+                top: -300px;
+                opacity: 0
+            }
+
+            to {
+                top: 0;
+                opacity: 1
+            }
+        }
+
+        /* The Close Button */
+        .close {
+            color: white;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-header-wallet {
+            padding: 2px 16px;
+            background-color: #224851;
+            color: white;
+            width: 100% !important;
+            height: 15%;
+        }
+
+        .modal-body-wallet {
+            padding: 30px 19px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer-wallet {
+            padding: 2px 16px;
+            width: 100%;
+            height: 50px;
+        }
+
+        #closeWindow {
+            background-color: #224851;
+            border: 0;
+            border-radius: 8px;
+            color: white;
+            padding: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal-wallet">
+
+        <!-- Modal content -->
+        <div class="modal-content-wallet">
+            <div class="modal-header-wallet d-flex  flex-column justify-content-end  ">
+                <div class=" d-flex  justify-content-between align-items-center">
+                    <div><img src="./img/Logo Typographic.png" /></div>
+                    <div>
+                        <h3 style="color:white">Pay</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body-wallet">
+                <div class="payment-container">
+                    <div id="msg"></div>
+                    <div class="row  wallet-address   flex-row justify-content-center align-items-center p-0"
+                        id="wallet-address" style=" margin:3px;  border-radius: 3px;">
+                    </div>
+                    <div class="row   justify-content-center  mt-3">
+                        <div class="col-md-12 d-flex justify-content-center align-items-center">
+                            <h3 style="color:#224851;" id="title"></h3>
+                        </div>
+                        <div class="col-md-12 d-flex justify-content-center align-items-center">
+                            <div class="subtitle" id="reference"></div>
+                        </div>
+                    </div>
+                    <div class="row  d-flex flex-column justify-content-center align-items-center p-0 mt-3"
+                        style="color:#224851">
+
+                        <div class=" w-100 d-flex align-items-center justify-content-center h1 asset-each">
+                            <img src="./img/merchandise.png" id="merchandise-icon" style="display:none" />
+                            <span class="amounts"><span class="dollar" id="dollar">$</span><span
+                                    id="amount"></span><span class="decimals" id="decimals"></span></span>
+                        </div>
+                    </div>
+                    <div class="row d-flex flex-row justify-content-between align-items-center" id="wallet-transfer">
+                    </div>
+                    <div class="row  flex-row justify-content-between p-3 " id="payment-btn">
+                        <div class=" crypto-btn d-flex align-items-center" id="btn-crypto">
+                            <div class="m-2 col-md-2 col-sm-12"> <img src="./img/crypto.png" /></div>
+                            <div class="d-flex flex-column col-md-10 col-sm-12">
+                                <h6>PAY WITH CRYPTO</h6>
+                                <h7 class="subtitle-btn">USDT Accepted</h7>
+                            </div>
+                        </div>
+                        <div class="crypto-btn d-flex align-items-center">
+                            <div class="m-2"> <img src="./img/card.png" /></div>
+                            <div class="d-flex flex-column">
+                                <h6>PAY WITH CARD</h6>
+                                <h7 style="color:#635BFF; border: 1px solid #635BFF; padding: 1px;">Powered by
+                                    stripe
+                                </h7>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row justify-content-center align-items-center mt-3 " id="approve-btn">
+                    </div>
+                    <div class="row justify-content-around align-items-center m-5" id="ViewExplorer">
+                    </div>
+                    <div class="row  flex-column justify-content-center align-items-center " id="progress-load">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer-wallet ">
+                <div class="d-flex flex-row justify-content-between align-items-center p-3">
+                    <h6 style="color:#224851"><a href="https://www.bitgreen.org/">www.bitgreen.org</a></h6>
+
+
+
+                    <h6 style="color:#224851; text-align: right;"><a
+                            href="https://www.bitgreen.org/privacy-policy">Privacy
+                            Policy</a></h6>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Get the modal
+        var modal = document.getElementById("myModal");
+
+        // Get the button that opens the modal
+
+
+
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+        function close() {
+            alert("sd");
+            console.log("sdsdsd")
+            modal.style.display = "none";
+        }
+    </script>
+    <script type="text/javascript" src="https://unpkg.com/web3@1.2.11/dist/web3.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
+    <script type="text/javascript"
+        src="https://unpkg.com/@walletconnect/web3-provider@1.2.1/dist/umd/index.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/fortmatic@2.0.6/dist/fortmatic.js"></script>
+
+    <script type="text/javascript" src="./usdstable.js"></script>
+</body>
+
+</html>

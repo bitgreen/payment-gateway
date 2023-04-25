@@ -1,120 +1,121 @@
 <html>
-  <head>
-    <title>Bitgreen - Payment Gateway for USDT</title>
 
+<head>
+    <title>Bitgreen - Payment Gateway for USDT</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Get some bootstrap default styles -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
-  </head>
-  <body>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.2.1/dist/css/bootstrap.min.css"
+        integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="./usdstable.css">
+</head>
+
+
+<body>
     <!-- Construct a Bootstrap layout -->
-    <div class="container">
+    <div class="row header d-flex justify-content-center align-items-end">
+        <div class="col-md-5 col-sm-12    d-flex flex-row justify-content-between align-items-center">
 
-      <div class="row">
-        <div class="col-md-12">
-        <div class="jumbotron">
-         <p><img src="bitgreen-logo-dark-68fc3a72.svg" width="200"></p>
-          <div class="alert alert-danger" id="alert-error-https" style="display: none">
-            You can run this payment gateway  only over HTTPS connection.
-          </div>
-          <hr>
-          <table>
-          <tr>
-          <td><p class="lead">Payment:</p></td><td><p class="lead"><span id="amount"></span> USDT</p></td>
-          </tr>
-          <tr>
-          <td><p class="lead">Reason:</p></td> <td><p class="lead"><span id="description"></span></p></td>
-          </tr>
-          <tr>
-          <td><p class="lead">Reference:</p></td><td><p class="lead"> <span id="reference"></span></p></td>
-          </tr>
-          </table>
-          <br>
-          <div id="prepare">
-            <button class="btn btn-warning" id="btn-connect">
-              Connect wallet
-            </button>
-          </div>
+            <img src="./img/Logo Typographic.png" />
 
-          <div id="connected" style="display: none">
-            <button class="btn btn-success" id="btn-pay">
-              Make Payment
-            </button>
-          </div>
+
+            <h3 style="color:white">Pay</h3>
+
         </div>
-        
-        <hr>
+    </div>
+    <div class=" bitgreen-container row d-flex flex-row justify-content-center align-items-center p-3">
 
-            <div id="network">
-              <p>
-                <strong>Connected blockchain:</strong> <span id="network-name"></span>
-              </p>
-              <span id="msg">
-              </span>
-              <p>
-                <strong>Selected account:</strong> <span id="selected-account"></span>
-              </p>
+        <div class="payment-container col-md-5 col-sm-12">
+            <div id="msg"></div>
+            <div class="row  wallet-address   flex-row justify-content-center align-items-center p-0"
+                id="wallet-address" style=" margin:3px;  border-radius: 3px;">
+            </div>
+            <div class="row   justify-content-center  ">
+                <div class="col-md-12 d-flex justify-content-center align-items-center">
+                    <h3 style="color:#224851;" id="title"></h3>
+                </div>
+                <div class="col-md-12 d-flex justify-content-center align-items-center">
+                    <div class="subtitle" id="reference"></div>
+                </div>
+            </div>
+            <div class="row  d-flex flex-column justify-content-center align-items-center p-0" style="color:#224851">
+
+                <div class=" w-100 d-flex align-items-center justify-content-center h1 asset-each">
+                    <img id="merchandise-icon" style="display:none" />
+                    <span class="amounts"><span class="dollar" id="dollar">$</span><span id="amount"></span><span
+                            class="decimals" id="decimals"></span></span>
+                </div>
+            </div>
+            <div class="row d-flex flex-row justify-content-between align-items-center" id="wallet-transfer">
+            </div>
+            <div class="row  flex-row justify-content-between p-3" id="payment-btn">
+                <div class=" crypto-btn d-flex align-items-center" id="btn-crypto">
+                    <div class="m-2"> <img src="./img/crypto.png" /></div>
+                    <div class="d-flex flex-column">
+                        <h6>PAY WITH CRYPTO</h6>
+                        <h7 class="subtitle-btn">USDT Accepted</h7>
+                    </div>
+                </div>
+                <div class="crypto-btn d-flex align-items-center">
+                    <div class="m-2"> <img src="./img/card.png" /></div>
+                    <div class="d-flex flex-column">
+                        <h6>PAY WITH CARD</h6>
+                        <h7 style="color:#635BFF; border: 1px solid #635BFF; padding: 1px;">Powered by stripe</h7>
+                    </div>
+                </div>
+            </div>
+            <div class="  flex-row  p-3" style="color:var(--main-bg-color);   overflow-y:auto; min-height: 39%"
+                id="product-history">
+
 
             </div>
-
-            <hr>
-
-            <h3>Account balances</h3>
-
-            <table class="table table-listing">
-              <thead>
-                <th>Address</th>
-                <th>Balance</th>
-              </thead>
-
-              <tbody id="accounts">
-              </tbody>
-            </table>
-
-            <p>You can switch between different accounts in your wallet.</p>
-
-          </div>
-
-          <br>
-
-          <div class="well">
-            <p class="text-muted"><a href="https://www.bitgreen.org/">www.bitgreen.org</a>
-             | <a href="https://www.bitgreen.org/privacy-policy">Privacy Policy</a>
-          </div>
-
+            <div class="row justify-content-center align-items-center  " id="approve-btn">
+            </div>
+            <div class="row justify-content-center align-items-center mb-5" id="ViewExplorer">
+            </div>
+            <div class="row  flex-column justify-content-center align-items-center " id="progress-load">
+            </div>
         </div>
-      </div>
     </div>
+    <div class=" footer row   d-flex flex-column justify-content-center align-items-center p-3">
 
+
+        <div class=" col-md-5 flex-row justify-content-between align-items-center">
+            <div class=" col-md-12 row alert-wallet flex-row justify-content-between align-items-center  "
+                style="background-color: #224851;padding: 0; margin-bottom: 10px;" id="alert">
+                <div class="col-md-1 d-flex justify-content-center   p-0"
+                    style="background-color: #224851; height: 100%;">
+                    <img src="./img/info.png" height="50%" />
+                </div>
+                <div style="background-color: white;padding: 10px; "
+                    class="col-md-11 d-flex justify-content-center align-items-center   description">
+                    <span> By connecting your wallet, you agree to the Bitgreen Terms of Service
+                        and confirm that you have read and understood the Privacy Policy.</span>
+                </div>
+            </div>
+            <div class="col-md-12 row d-flex flex-row justify-content-between align-items-center">
+
+                <h6 style="color:#224851"><a href="https://www.bitgreen.org/">www.bitgreen.org</a></h6>
+
+
+
+                <h6 style="color:#224851; text-align: right;"><a href="https://www.bitgreen.org/privacy-policy">Privacy
+                        Policy</a></h6>
+            </div>
+        </div>
+    </div>
     <!-- We use simple <template> templating for the example -->
-    <div id="templates" style="display: none">
-      <template id="template-balance">
-        <tr>
-          <th class="address"></th>
-          <td class="balance"></td>
-        </tr>
-      </template>
-    </div>
-
-    <!--
-
-      Use unpkg CDN to load all NPM packages to vanilla Javascript - read more at http://unpkg.com
-
-      On your deployment, you properly either want to use a preprocessing tool like webpack
-      to include these files, or extract NPM archives and manually host the files inside.
-
-
-    -->
-
+    <!-- web3.js library -->
     <script type="text/javascript" src="https://unpkg.com/web3@1.2.11/dist/web3.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/web3modal@1.9.0/dist/index.js"></script>
     <script type="text/javascript" src="https://unpkg.com/evm-chains@0.2.0/dist/umd/index.min.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/@walletconnect/web3-provider@1.2.1/dist/umd/index.min.js"></script>
+    <script type="text/javascript"
+        src="https://unpkg.com/@walletconnect/web3-provider@1.2.1/dist/umd/index.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/fortmatic@2.0.6/dist/fortmatic.js"></script>
 
-    <!-- This is our example code -->
     <script type="text/javascript" src="./usdstable.js"></script>
-  </body>
+</body>
+
 </html>
