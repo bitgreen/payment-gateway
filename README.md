@@ -14,13 +14,13 @@ npm install
 
 The server module listen on port 3000 and can be executed settings certain environment variables as from the following example to configure the access to a postgresql server:  
 ``
-#!/bin/bash. 
+#!/bin/bash  
 export PGUSER='paymentgateway'  
-export PGPASSWORD='xxxxxxxxxxxxx'
+export PGPASSWORD='xxxxxxxxxxxxx'  
 export PGHOST='127.0.0.1'  
-export PGDATABASE='paymentgateway'  
-cd /usr/src/payment-gateway  
-node /usr/src/payment-gateway/payment-gateway.js  
+export PGDATABASE='paymentgateway'   
+cd /usr/src/payment-gateway   
+node /usr/src/payment-gateway/payment-gateway.js   
 ``
 
 the database contains one single table:  
