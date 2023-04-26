@@ -91,3 +91,23 @@ export PGHOST='127.0.0.1'
 export PGDATABASE='paymentgateway'
 node /usr/src/payment-gateway/payment-validator.js
 ```
+The validator requires access to the database to find the orderid for the confirmation. The connection to the database should be configured over VPN tunnel for security reasons.  
+
+## Integration in the Market Place
+The gateway can be called redirecting to the following url:
+```
+https://pay.bitgreen.org/?p=USDT&a=100&r=123456&d=test_payment&rp=paid.html&rnp=notpaid.html&o=5HTjwDQet7MagqP9F5ApmjBLUnRa96D91PBiAToj41xExXox
+```
+where the parameters are the following:  
+- p = currency, actually supported USDT and USDC.  
+- a = amount to pay in the selected currency.  
+- r = reference id or better the order id from dex of.  
+- d = description, is the description of what you are paying for.  
+- rp = url to show once the payment is done.  (not yet active).  
+- rnp = url to show in case of dropping the payment. (not yet active).  
+- o = origin address that should match the order id (reference id), it's requested for security to avoid injection.
+Optionally, the details of the products in purchase can be shown with the following parameter:
+```
+dp=[{"id":"001","desc":"product 001","qnt":1,"price":100.00,"currency":"USDT"},{"id":"002","desc":"product 002","qnt":2,"price":150.00,"currency":"USDT"}]
+```
+
