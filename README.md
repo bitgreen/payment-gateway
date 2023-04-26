@@ -24,7 +24,7 @@ node /usr/src/payment-gateway/payment-gateway.js
 ```
 
 the database contains one single table:  
-``
+```
   Table "public.paymentrequests"
     Column     |            Type             | Collation | Nullable |        Default        
 ---------------+-----------------------------+-----------+----------+-----------------------
@@ -38,10 +38,10 @@ the database contains one single table:
  chainid       | integer                     |           | not null | 1
 Indexes:
     "paymentrequests_pkey" PRIMARY KEY, btree (referenceid)
-``
+```
 that can be created with the following SQL statement:  
 
-``
+```
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -67,7 +67,7 @@ CREATE TABLE public.paymentrequests (
 ALTER TABLE public.paymentrequests OWNER TO postgres;
 ALTER TABLE ONLY public.paymentrequests ADD CONSTRAINT paymentrequests_pkey PRIMARY KEY (referenceid);
 GRANT ALL ON TABLE public.paymentrequests TO paymentgateway;
-``
+```
 
 You should configure an NGINX serve proxy to connect by https.
 
@@ -76,7 +76,7 @@ You should configure an NGINX serve proxy to connect by https.
 The validators server listen for payment on the blockchain and submit the approval to the Bitgreen Parachain.  
 For security, we should have >1 validator running from differnet machine and looking to different nodes for each network.  
 You can run the validator settings certain variables like in this example:  
-``
+```
 #!/bin/bash
 export BLOCKCHAIN="wss://smart-greatest-orb.ethereum-sepolia.discover.quiknode.pro/3ef1aecf950aa22a84b41f924493f721644ca05d/"
 export BLOCKCHAINCODE=11155111
@@ -90,4 +90,4 @@ export PGPASSWORD='xxxxxxxx'
 export PGHOST='127.0.0.1'
 export PGDATABASE='paymentgateway'
 node /usr/src/payment-gateway/payment-validator.js
-``
+```
