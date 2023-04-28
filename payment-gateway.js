@@ -35,7 +35,9 @@ async function mainloop(){
         let d=req.query.d;
         let o=req.query.o;
         let dp=req.query.dp;
+        let v=req.query.v;
         console.log("Received call - p: ",p,"a: ",a,"r: ",r,"rp: ","rp: ",rp,"rnp: ",rnp," d: ",d,"o: ",o);
+        
         // p is the payment method: 
         // r is the referenceid
         // rp is the url to redirect for successfully payment
@@ -65,6 +67,9 @@ async function mainloop(){
         if(typeof dp === 'undefined'){
             dp="[]";
         }
+        if(typeof v === 'undefined'){
+            v="fullview";
+        }
         if(typeof p!== 'undefined'){
             res.cookie('p', p);
             res.cookie('a',a);
@@ -74,9 +79,13 @@ async function mainloop(){
             res.cookie('d',d);
             res.cookie('o',o);
             res.cookie('dp',dp);
+            res.cookie('v',v);
             //USDT or USDT
             if(p=='USDC' || p=='USDT'){
-                res.send(read_file("html/usdstable.html"));                
+                if(v=="modal")
+                    res.send(read_file("html/usdstablemodal.html"));
+                else
+                    res.send(read_file("html/usdstable.html"));                
             }
         }
         if(p===undefined){

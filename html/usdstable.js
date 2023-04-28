@@ -371,8 +371,8 @@ async function fetchAccountData() {
       document.querySelector("#merchandise-icon").src = "./img/merchandise.png";
       break;
     case 1:
-      document.querySelector("#net-logo").src = "./img/Polygon.png";
-      document.querySelector("#merchandise-icon").src = "./img/merchandise.png";
+      document.querySelector("#net-logo").src = "./img/ETH.png";
+      document.querySelector("#merchandise-icon").src = "./img/ETH.png";
 
       break;
     case 80091:
@@ -395,6 +395,15 @@ async function fetchAccountData() {
       document.querySelector("#merchandise-icon").src = "./img/ETH.png";
 
       break;
+    case 43114:
+      document.querySelector("#net-logo").src = "./img/BSC.png";
+      document.querySelector("#merchandise-icon").src = "./img/BSC.png";
+
+    default:
+      document.querySelector("#net-logo").src = "./img/Polygon.png";
+      document.querySelector("#merchandise-icon").src = "./img/merchandise.png";
+
+      break;
   }
 
   showApproveBtn();
@@ -406,7 +415,7 @@ async function makePayment() {
   let p = getCookie("p") || "USDT";
   let r = getCookie("r") || "123456";
   let originaddress = getCookie("o") || "0x07";
-  if (chainId == 1 && p == "USDT")
+  if (chainId == 137 && p == "USDT")
     // Polygon Mainnet
     tokenAddress = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"; //USDT on Polygon
   if (chainId == 80091 && p == "USDT")
