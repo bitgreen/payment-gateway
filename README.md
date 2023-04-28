@@ -106,6 +106,7 @@ where the parameters are the following:
 - rp = url to show once the payment is done.  (not yet active).  
 - rnp = url to show in case of dropping the payment. (not yet active).  
 - o = origin address that should match the order id (reference id), it's requested for security to avoid injection.
+- v = "modal" for modal view, defaul is full view.  
 Optionally, the details of the products in purchase can be shown with the following parameter:
 ```
 dp=[{"id":"001","desc":"product 001","qnt":1,"price":100.00,"currency":"USDT"},{"id":"002","desc":"product 002","qnt":2,"price":150.00,"currency":"USDT"}]
