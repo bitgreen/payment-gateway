@@ -103,8 +103,8 @@ where the parameters are the following:
 - a = amount to pay in the selected currency.  
 - r = reference id or better the order id from dex of.  
 - d = description, is the description of what you are paying for.  
-- rp = url to show once the payment is done.  (not yet active).  
-- rnp = url to show in case of dropping the payment. (not yet active).  
+- rp = url to show once the payment is done. Mandatory field required for card payments.  
+- rnp = url to show in case of dropping the payment. Mandatory field required for card payments. 
 - o = origin address that should match the order id (reference id), it's requested for security to avoid injection.
 - v = "modal" for modal view, defaul is full view.  
 Optionally, the details of the products in purchase can be shown with the following parameter:
