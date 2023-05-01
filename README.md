@@ -99,7 +99,7 @@ The gateway can be called redirecting to the following url:
 https://pay.bitgreen.org/?p=USDT&a=100&r=123456&d=test_payment&rp=paid.html&rnp=notpaid.html&o=5HTjwDQet7MagqP9F5ApmjBLUnRa96D91PBiAToj41xExXox
 ```
 where the parameters are the following:  
-- p = currency, actually supported USDT and USDC.  
+- p = currency, actually supported USDT and USDC. Payment by card are done in USD. 
 - a = amount to pay in the selected currency.  
 - r = reference id or better the order id from dex of.  
 - d = description, is the description of what you are paying for.  
