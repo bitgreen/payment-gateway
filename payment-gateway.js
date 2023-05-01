@@ -6,6 +6,8 @@
 const express = require('express');
 const  fs = require('fs');
 const { Client } = require('pg')
+const stripe = require('stripe')('sk_test_51MDq0VKluWo1Xbjw9dB5xdWgGUulDA6ckewLKyz4wdQee6yrxX5QhhJ5oblHgWhVApt2VDOlHH0JxARlaimxnC5s00Laa66Evw');
+
 let app = express();
 // read environment variables
 const SSL_CERT = process.env.SSL_CERT
@@ -25,7 +27,7 @@ console.log("[INFO] Listening for connections");
 async function mainloop(){
     const client = new Client();
     await client.connect();
-    app.get('/', function (req, res) {
+    app.get('/', async function (req, res) {
 
         let p=req.query.p;
         let a=req.query.a;
@@ -64,6 +66,22 @@ async function mainloop(){
             res.send("ERROR - parameter o (origin address on substrate chain), is missing");
             return;
         }
+        if(typeof rp === 'undefined'){
+            res.send("ERROR - parameter rp (redirect page for successfully payment) is missing");
+            return;
+        }
+        if(typeof rnp === 'undefined'){
+            res.send("ERROR - parameter rnp (redirect page for failed payment) is missing");
+            return;
+        }
+        if(rp.substring(0,8)!='https://'){
+            res.send("ERROR - parameter rp (redirect page for successfully payment) must start with https://");
+            return;
+        }
+        if(rnp.substring(0,8)!='https://'){
+            res.send("ERROR - parameter rnp (redirect page for failed payment) must start with https://");
+            return;
+        }
         if(typeof dp === 'undefined'){
             dp="[]";
         }
@@ -80,6 +98,29 @@ async function mainloop(){
             res.cookie('o',o);
             res.cookie('dp',dp);
             res.cookie('v',v);
+            // get url from Stripe
+            const stripesession = await stripe.checkout.sessions.create({
+            line_items: [
+              {
+                price_data: {
+                currency: 'usd',
+                product_data: {name: d,},unit_amount: a*100,},quantity: 1,},],
+                //metadata: {"id":r},
+                mode: 'payment',
+                success_url: rp,
+                cancel_url: rnp,
+                client_reference_id: r,
+            });
+            res.cookie('stu',stripesession.url);
+            // store stripe id
+            // check for the same referenceid already present
+            const status="pending";
+            try {
+              const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
+              await client.query(queryText, [stripesession.id,r,a,status]);
+            } catch (e) {
+                throw e;
+            }
             //USDT or USDT
             if(p=='USDC' || p=='USDT'){
                 if(v=="modal")

@@ -3,10 +3,16 @@ let endTx = false;
 window.addEventListener("load", async () => {
   init();
   document.querySelector("#btn-crypto").addEventListener("click", onCrypto);
+  document.querySelector("#btn-card").addEventListener("click", onCard);
 });
 
 async function onCrypto() {
   onConnect();
+}
+async function onCard(){
+  let stu=getCookie("stu");
+  window.location.href=stu;
+  return;
 }
 
 async function onLoadingStart() {
