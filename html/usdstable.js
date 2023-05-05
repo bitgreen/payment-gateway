@@ -11,6 +11,8 @@ async function onCrypto() {
 }
 async function onCard(){
   let stu=getCookie("stu");
+  //stu="https://www.bitgreen.org";
+  //document.querySelector("#stripeframe").innerHTML='<iframe src="'+stu+'" height="600" width="600"title="Stripe" ></iframe>';
   window.location.href=stu;
   return;
 }
@@ -20,6 +22,7 @@ async function onLoadingStart() {
   hideElement("#approve-btn");
   hideElement("#product-history");
   hideElement("#ViewExplorer");
+  hideElement("#stripeframe");
   showLoading();
   makePayment();
 }

@@ -142,6 +142,40 @@ async function mainloop(){
             console.log(v);
         }
     });
+    app.get('/stripe/',async function (req, res) {
+        let p=req.query.p;
+        let a=req.query.a;
+        let r=req.query.r;
+        let rp=req.query.rp;
+        let rnp=req.query.rnp;
+        let d=req.query.d;
+        let o=req.query.o;
+        let dp=req.query.dp;
+        let v=req.query.v;
+
+        const paymentIntent = await stripe.paymentIntents.create({
+              amount: a,
+              currency: 'usd',
+              description: d,
+              metadata: {referencid: r,},
+              automatic_payment_methods: {
+                enabled: true,
+              },});
+       res.json({client_secret: paymentIntent.client_secret});
+            
+    });
+    /*
+    // proxy stripe.com to turn around the iframe blocking
+    // this solution does not work with stripe since they are dynamically changing the url:(
+    app.get('/stripe',async function (req, res) {
+         let url=req.query.url;
+         let r=await fetch(url)
+         let rp= await r.text();
+         console.log(rp);
+         rp=rp.replace("https://","https://pay.bitgreen.org/stripe?url=");
+         rp=rp.replace('"/','"https://pay.bitgreen.org/stripe?url='+url+'/');
+         res.send(rp);
+    });*/
     // function to store a payment request
     app.get('/paymentrequest', async function (req, res) {
         let token=req.query.token;    
