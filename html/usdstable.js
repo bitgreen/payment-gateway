@@ -5,15 +5,167 @@ window.addEventListener("load", async () => {
   document.querySelector("#btn-crypto").addEventListener("click", onCrypto);
   document.querySelector("#btn-card").addEventListener("click", onCard);
 });
-
+const stripe = Stripe(
+  "pk_test_51MDq0VKluWo1XbjwsOmEReq9JNeOiHeXnQdvQBphAn3JT2V9zxIDTDZWE9qbqeh23G7uh4Cm77HItgCIENYVkuUx00ayEfxrzZ"
+);
 async function onCrypto() {
   onConnect();
 }
-async function onCard(){
-  let stu=getCookie("stu");
+async function onCard() {
+  let p = getCookie("p");
+  let a = getCookie("a") || 100;
+  let r = getCookie("r") || '123456';
+  let rp = getCookie("rp");
+  let rnp = getCookie("rnp");
+  let d = getCookie("d") || 'test_payment';
+  let o = getCookie("o");
+  let data;
+  let { amount, decimals } = getAmountDecimal(a);
+
+  document.querySelector("#dollar").textContent = "$";
+  document.querySelector("#amount").textContent = amount || 100;
+  document.querySelector("#decimals").textContent = "." + decimals;
+  document.querySelector("#reference").textContent = `Ref # ${r || 123456}`;
+  document.querySelector("#title").textContent = d || "Merchandise Purchase";
+  try {
+    const response = await fetch(`/stripe/?a=${a}&r=${r}&d=${d}`);
+    data = await response.json();
+  } catch (error) {
+    console.error(error);
+  }
+  const client_secret = data.client_secret;
+  hideElement("#payment-btn");
+  hideElement("#product-history");
+  hideElement("#ViewExplorer");
+  hideElement('#alert');
+  document.querySelector("#stripeframe").innerHTML =
+    `<div class="row   flex-column justify-content-center align-items-center">
+      <div class="col-md-10">
+        <div id="link-authentication-element">
+        </div>
+        <div id="payment-element">
+        </div>
+        <button id="btn-stripe" class="mt-3">Pay</button>
+        <div id="error-message"></div>
+      </div>
+      <h5 class="powered_by_stripe">Powered by <b>stripe</b></h5>
+    </div>`;
+
+  const form = document.getElementById("stripeframe");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const { error } = await stripe.confirmPayment({
+      //`Elements` instance that was used to create the Payment Element
+      elements,
+      confirmParams: {},
+      redirect: "if_required",
+    });
+
+    if (error) {
+      // This point will only be reached if there is an immediate error when
+      // confirming the payment. Show error to your customer (for example, payment
+      // details incomplete)
+      const messageContainer = document.querySelector("#msg");
+      messageContainer.textContent = error.message;
+    } else {
+      hideElement("#stripeframe");
+      // The customer will be redirected to your `return_url`. 
+      // site first to authorize the payment, then redirected to the `return_url`.
+      const clientSecret = new URLSearchParams(window.location.search).get(
+        "payment_intent_client_secret"
+      );
+      //  hideElement("#stripeframe");
+      stripe.retrievePaymentIntent(client_secret).then(({ paymentIntent }) => {
+        const message = document.querySelector("#title");
+
+        // Inspect the PaymentIntent `status` to indicate the status of the payment
+        // Some payment methods will [immediately succeed or fail][0] upon
+        // confirmation, while others will first enter a `processing` state.
+        //
+        // [0]: https://stripe.com/docs/payments/payment-methods#payment-notification
+        switch (paymentIntent.status) {
+          case "succeeded":
+            message.innerText = "Transaction Complete";
+            showViewExplorerBtn(true);
+            // document.querySelector("#ViewExplorer").innerHTML = '<a id="close_btn" href="./">Close window</a>';
+            break;
+
+          case "processing":
+            message.innerText =
+              "Payment processing. We'll update you when payment is received.";
+            break;
+
+          case "requires_payment_method":
+            message.innerText =
+              "Payment failed. Please try another payment method.";
+            // Redirect your user back to your payment page to attempt collecting
+            // payment again
+            break;
+
+          default:
+            message.innerText = "Something went wrong.";
+            break;
+        }
+      });
+    }
+  });
+
+  const options = {
+    clientSecret: client_secret,
+    // Fully customizable with appearance API.
+    appearance: {
+      theme: "stripe",
+      variables: {
+        colorPrimary: "#0570de",
+        colorBackground: "#ffffff",
+        colorText: "#30313d",
+        colorDanger: "#df1b41",
+        fontFamily: "Ideal Sans, system-ui, sans-serif",
+        spacingUnit: "2px",
+        borderRadius: "4px",
+        spacingGridRow: "0px",
+        // See all possible variables below
+      },
+      rules: {},
+    },
+  };
+
+  // // Set up Stripe.js and Elements to use in checkout form, passing the client secret obtained in step 3
+  const elements = stripe.elements(options);
+
+  // // Create and mount the Payment Element
+  const paymentElement = elements.create("payment", {
+    fields: {
+      billingDetails: {
+        name: "auto",
+      },
+    },
+  });
+  paymentElement.mount("#payment-element");
+  const addressElement = elements.create("address", {
+    mode: "shipping",
+    fields: {
+      line1: {
+        hidden: true,
+      },
+      name: {
+        placeholder: "1234",
+        hidden: true,
+      },
+      phone: "always",
+    },
+  });
+  //  addressElement.mount("#address-element");
+  const linkAuthenticationElement = elements.create("linkAuthentication");
+  linkAuthenticationElement.mount("#link-authentication-element");
+
+  let stu = getCookie("stu");
+
   //stu="https://www.bitgreen.org";
   //document.querySelector("#stripeframe").innerHTML='<iframe src="'+stu+'" height="600" width="600"title="Stripe" ></iframe>';
-  window.location.href=stu;
+  //window.location.href = stu;
   return;
 }
 
@@ -39,26 +191,45 @@ async function hideElement(element) {
 
 async function showWalletTransfer(fromAdd, toAdd) {
   document.querySelector("#wallet-transfer ").innerHTML =
-    '<div class="col-md-4  d-flex flex-column">                    <div class="d-flex justify-content-center align-items-center">                        <h6>MetaMask Wallet</h6>                    </div>                    <div class="d-flex align-items-center justify-content-start">' +
-    fromAdd +
-    '</div>                </div>         <div class="d-flex col-md-4 justify-content-center align-items-center"> <img src="./img/Arrow 1.png" /></div>                <div class="col-md-4  d-flex flex-column">                    <div class="d-flex justify-content-center align-items-center">                        <h6>Contract</h6>                    </div>                    <div class="d-flex justify-content-end align-items-center">' +
-    toAdd +
-    "</div>                </div>";
+    `<div class="col-md-4  d-flex flex-column">
+      <div class="d-flex justify-content-center align-items-center">
+        <h6>MetaMask Wallet</h6>
+      </div>
+      <div class="d-flex align-items-center justify-content-start">
+        ${fromAdd}
+      </div>
+    </div>
+    <div class="d-flex col-md-4 justify-content-center align-items-center">
+      <img src="./img/Arrow 1.png" />
+    </div>
+    <div class="col-md-4  d-flex flex-column">
+      <div class="d-flex justify-content-center align-items-center">
+        <h6>Contract</h6>
+      </div>   
+      <div class="d-flex justify-content-end align-items-center">
+        ${toAdd}
+      </div>
+    </div>`;
 }
 async function showHistory() {
   document.querySelector("#product-history").style.display = "block";
 }
 async function showApproveBtn() {
   document.querySelector("#approve-btn").innerHTML =
-    '<button id="transaction-btn"                    class="col-md-4 d-flex justify-content-around align-items-center" onClick="onLoadingStart()" ><h6 style="font-weight:bold">Approve transaction</h6><img src="./img/arrow_forward.png" class="arrow-icon"/></button>';
+    `<button id="transaction-btn" class="col-md-4 d-flex justify-content-around align-items-center" onClick="onLoadingStart()">
+      <h6 style="font-weight:bold">Approve transaction</h6>
+      <img src="./img/arrow_forward.png" class="arrow-icon"/>
+    </button>`;
 }
-async function showViewExplorerBtn() {
+async function showViewExplorerBtn(isStripe = false) {
   let model = document.querySelector("#myModal");
   document.querySelector("#ViewExplorer").innerHTML =
-    '<button id="transaction-btn"                    class="col-md-5 d-flex justify-content-around align-items-center" onClick=" " > View in explorer</button>';
+    `<button id="transaction-btn" class="col-md-5 d-flex justify-content-around align-items-center" onClick=" ">
+      ${isStripe ? 'Save a copy' : 'View in explorer'}
+    </button>`;
   if (model) {
     document.querySelector("#ViewExplorer").innerHTML +=
-      '<button id="closeWindow"                   class="col-md-5 d-flex justify-content-around align-items-center" onClick="onCloseModal() " > Close Window</button>';
+      '<button id="closeWindow" class="col-md-5 d-flex justify-content-around align-items-center" onClick="onCloseModal()">Close Window</button>';
   }
   document.querySelector("#ViewExplorer").style.display = "flex";
 }
@@ -67,16 +238,22 @@ async function onCloseModal() {
 }
 async function showLoading() {
   document.querySelector("#progress-load").innerHTML =
-    '<div class="col-md-3 col-sm-6 d-flex justify-content-center align-items-center">                    <div class="spinner-border" role="status">  <span class="sr-only">Loading...</span></div>               </div>                <h3>Approve using your web3 </h3>                <div class="subtitle">once completed, this screen will update</div>';
+    `<div class="col-md-3 col-sm-6 d-flex justify-content-center align-items-center">
+      <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+      </div>
+    </div>
+    <h3>Approve using your web3</h3>
+    <div class="subtitle">once completed, this screen will update</div>`;
   document.querySelector("#progress-load").style.display = "flex";
 }
 async function endLoad(fromAdd, toAdd) {
   hideElement("#progress-load");
   hideElement("#wallet-address");
   document.querySelector("#title").innerHTML =
-    '<div class="col-md-12 d-flex justify-content-center align-items-center">' +
-    '<h3 style="color:#224851;">Transaction Complete</h3>' +
-    "</div>";
+    `<div class="col-md-12 d-flex justify-content-center align-items-center">
+      <h3 style="color:#224851;">Transaction Complete</h3>
+    </div>`;
   showWalletTransfer(fromAdd, toAdd);
   showHistory();
   showViewExplorerBtn();
