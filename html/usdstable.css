@@ -168,7 +168,27 @@ h5.powered_by_stripe b {
   cursor: pointer;
 }
 
-
+.receipt {
+  max-width: 400px;
+  margin: 22px auto;
+  width: 100%;
+}
+.receipt > div {
+  background: #f7f9fc;
+  padding: 7px 16px;
+  border-radius: 10px;
+}
+.receipt > div h6 {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #ecf0f5;
+  padding-bottom: 10px;
+}
+.receipt > div p {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
 /* The Modal (background) */
 .modal-wallet {
   display: block;

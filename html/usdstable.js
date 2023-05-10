@@ -28,7 +28,7 @@ async function onCard() {
   document.querySelector("#reference").textContent = `Ref # ${r || 123456}`;
   document.querySelector("#title").textContent = d || "Merchandise Purchase";
   try {
-    const response = await fetch(`/stripe/?a=${a}&r=${r}&d=${d}`);
+    const response = await fetch(`/stripe/?a=${a*100}&r=${r}&d=${d}`); // a - amount is cent
     data = await response.json();
   } catch (error) {
     console.error(error);
@@ -68,10 +68,13 @@ async function onCard() {
       // confirming the payment. Show error to your customer (for example, payment
       // details incomplete)
       const messageContainer = document.querySelector("#msg");
-      messageContainer.textContent = error.message;
+      messageContainer.innerHTML = `<div class="alert alert-danger" role="alert" >Error: ${error.message}</div>`;
+      messageContainer.style.display = "block";
     } else {
       hideElement("#stripeframe");
-      // The customer will be redirected to your `return_url`. 
+      hideElement("#msg");
+      // Your customer will be redirected to your `return_url`. For some payment
+      // methods like iDEAL, your customer will be redirected to an intermediate
       // site first to authorize the payment, then redirected to the `return_url`.
       const clientSecret = new URLSearchParams(window.location.search).get(
         "payment_intent_client_secret"
@@ -81,6 +84,8 @@ async function onCard() {
         const message = document.querySelector("#title");
 
         // Inspect the PaymentIntent `status` to indicate the status of the payment
+        // to your customer.
+        //
         // Some payment methods will [immediately succeed or fail][0] upon
         // confirmation, while others will first enter a `processing` state.
         //
@@ -88,7 +93,7 @@ async function onCard() {
         switch (paymentIntent.status) {
           case "succeeded":
             message.innerText = "Transaction Complete";
-            showViewExplorerBtn(true);
+            showViewExplorerBtn(true, paymentIntent);
             // document.querySelector("#ViewExplorer").innerHTML = '<a id="close_btn" href="./">Close window</a>';
             break;
 
@@ -221,12 +226,32 @@ async function showApproveBtn() {
       <img src="./img/arrow_forward.png" class="arrow-icon"/>
     </button>`;
 }
-async function showViewExplorerBtn(isStripe = false) {
+async function showViewExplorerBtn(isStripe = false, {amount: a = 0, created = new Date()}) {
   let model = document.querySelector("#myModal");
-  document.querySelector("#ViewExplorer").innerHTML =
-    `<button id="transaction-btn" class="col-md-5 d-flex justify-content-around align-items-center" onClick=" ">
-      ${isStripe ? 'Save a copy' : 'View in explorer'}
+  if (isStripe) {
+    let { amount, decimals } = getAmountDecimal(a/100);
+    created = new Date(created * 1000).toDateString();
+
+    document.querySelector("#ViewExplorer").innerHTML =
+    `<div class="row w-100">
+      <div class="receipt">
+        <label>Receipt from Stripe, Inc</label>
+        <div>
+          <h6><span>Payment to Stripe, Inc.</span><span>$${amount}.${decimals}</span></h6>
+          <p><span>Date paid</span><span>${created}</span></p>
+          <p><span>Amount paid</span><span>$${amount}.${decimals}</span></p>
+        </div>
+      </div>
+    </div>
+    <button id="transaction-btn" class="col-md-5 d-flex justify-content-around align-items-center" onClick=" ">
+      Save a copy
     </button>`;
+  } else {
+    document.querySelector("#ViewExplorer").innerHTML =
+      `<button id="transaction-btn" class="col-md-5 d-flex justify-content-around align-items-center" onClick=" ">
+        View in explorer
+      </button>`;
+  }
   if (model) {
     document.querySelector("#ViewExplorer").innerHTML +=
       '<button id="closeWindow" class="col-md-5 d-flex justify-content-around align-items-center" onClick="onCloseModal()">Close Window</button>';
