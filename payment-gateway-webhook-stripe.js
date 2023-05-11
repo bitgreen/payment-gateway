@@ -84,8 +84,11 @@ async function mainloop(){
         }
         // verify the data event with the stored record to avoid injections
         // verify amount
-        // verify referenceid in metadata
-        
+        if((rs.rows[0]['amount']*100)!=pi.amount_received){
+            console.log("ERROR: the payment amount does not matcht the order: ",pi.id,rs.rows[0]['amount'],pi.amount_received);
+            response.json({received: true});
+            return;
+        }
         // validate the payment on bitgreen blockchain
         // validate Bitgreen blockchain
         await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,api);
