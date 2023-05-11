@@ -142,6 +142,7 @@ async function mainloop(){
             console.log(v);
         }
     });
+    // function to generate a payment intent and store it
     app.get('/stripe/',async function (req, res) {
         let p=req.query.p;
         let a=req.query.a;
@@ -162,7 +163,14 @@ async function mainloop(){
                 enabled: true,
               },});
        res.json({client_secret: paymentIntent.client_secret});
-            
+       // store the payment intent 
+       const status="pending";
+       try {
+              const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
+              await client.query(queryText, [paymentIntent.id,r,(a/100),status]);
+       } catch (e) {
+           throw e;
+       }
     });
     /*
     // proxy stripe.com to turn around the iframe blocking

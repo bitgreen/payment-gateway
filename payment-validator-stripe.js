@@ -1,11 +1,12 @@
-// Validator program for the payment gateway
+// Validator program for the payment gateway using stripe with "session"
+// this program should be executed every  minute from crontab
 const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
 
 const BITGREENBLOCKCHAIN = process.env.BITGREENBLOCKCHAIN;
-if (typeof BITGREENBLOCKCHAIN=='=undefined'){
+if (typeof BITGREENBLOCKCHAIN==='undefined'){
     console.log("BITGREENBLOCKCHAIN variable is not set, please set it for launching the validator");
     process.exit();
 }
@@ -48,7 +49,7 @@ async function mainloop(){
     for(r in rs['rows']) {
         const stripeid=rs['rows'][r]['stripeid'];
         const amount=rs['rows'][r]['amount'];
-        const referenceid=rs['rows'][r]['referencid'];
+        const referenceid=rs['rows'][r]['referenceid'];
         const status=rs['rows'][r]['status'];
         // get session object from stripe
         const session = await stripe.checkout.sessions.retrieve(stripeid);        
@@ -71,7 +72,7 @@ async function mainloop(){
                 throw e;
             }
             // validate Bitgreen blockchain
-            await validate_payment(referencid,"0",stripeid,keys,api);
+            await validate_payment(referenceid,"0",stripeid,keys,api);
         }
     }
     await client.end();
