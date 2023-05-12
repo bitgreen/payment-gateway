@@ -234,16 +234,18 @@ async function showViewExplorerBtn(isStripe = false, {amount: a = 0, created = n
 
     document.querySelector("#ViewExplorer").innerHTML =
     `<div class="row w-100">
-      <div class="receipt">
-        <label>Receipt from Stripe, Inc</label>
-        <div>
-          <h6><span>Payment to Stripe, Inc.</span><span>$${amount}.${decimals}</span></h6>
-          <p><span>Date paid</span><span>${created}</span></p>
-          <p><span>Amount paid</span><span>$${amount}.${decimals}</span></p>
+      <div class="receipt-container">
+        <div id="receipt">
+          <label>Receipt from Stripe, Inc</label>
+          <div>
+            <h6><span>Payment to Stripe, Inc.</span><span>$${amount}.${decimals}</span></h6>
+            <p><span>Date paid</span><span>${created}</span></p>
+            <p><span>Amount paid</span><span>$${amount}.${decimals}</span></p>
+          </div>
         </div>
       </div>
     </div>
-    <button id="transaction-btn" class="col-md-5 d-flex justify-content-around align-items-center" onClick=" ">
+    <button id="transaction-btn" class="col-md-5 d-flex justify-content-around align-items-center" onClick="onSaveCopy('${created}')">
       Save a copy
     </button>`;
   } else {
@@ -257,6 +259,28 @@ async function showViewExplorerBtn(isStripe = false, {amount: a = 0, created = n
       '<button id="closeWindow" class="col-md-5 d-flex justify-content-around align-items-center" onClick="onCloseModal()">Close Window</button>';
   }
   document.querySelector("#ViewExplorer").style.display = "flex";
+}
+function onSaveCopy(filename) {
+  filename = filename.replace(/ /g, '_');
+  htmlToImage.toBlob(document.getElementById('receipt'))
+  .then(function (blob) {
+    if (window.saveAs) {
+      window.saveAs(blob, `${filename}.png`);
+    } else {
+      const a = document.createElement("a");
+      const isBlob = blob.toString().indexOf("Blob") > -1;
+      let url = blob;
+      if (isBlob) {
+        url = window.URL.createObjectURL(blob);
+      }
+      a.href = url;
+      a.download = `${filename}.png`;
+      a.click();
+      if (isBlob) {
+        window.URL.revokeObjectURL(url);
+      }
+   }
+  });
 }
 async function onCloseModal() {
   document.querySelector("#myModal").style.display = "none";
