@@ -101,7 +101,7 @@ https://pay.bitgreen.org/?p=USDT&a=100&r=123456&d=test_payment&rp=paid.html&rnp=
 where the parameters are the following:  
 - p = currency, actually supported USDT and USDC. Payment by card are done in USD. 
 - a = amount to pay in the selected currency.  
-- r = reference id or better the order id from dex of.  
+- r = reference id or better the order id from dex of. You can pass multiple orderid separatig them by comma, for example r=12,13,14,15 (max 256 bytes)
 - d = description, is the description of what you are paying for.  
 - rp = url to show once the payment is done. Mandatory field required for card payments.  
 - rnp = url to show in case of dropping the payment. Mandatory field required for card payments. 

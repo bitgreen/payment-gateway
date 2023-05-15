@@ -79,10 +79,21 @@ async function mainloop(){
     await api.disconnect();
     process.exit()
 }
-// function to confirm the payment on our blockchain
+
+// function to submit the transaction to the blockchain
 async function validate_payment(orderid,blockchainid,tx,keys,api){
-	    const validate = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
-	    // Sign and send the transaction using our account
-    	    const hash = await validate.signAndSend(keys);
-	    console.log("Validation submitted tx: ",hash.toHex());
+    let ao=[];
+    if(orderid.search(",")==-1)
+        ao.push(orderid);
+    else
+        ao=orderid.split(",");
+    for(x in ao){
+        if(ao[x].length==0)
+            continue;
+	const validate = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
+	// Sign and send the transaction using our account with nonce to consider the queue
+    	const hash = await validate.signAndSend(keys,{ nonce: -1 });
+	console.log("Validation submitted tx: ",hash.toHex());
+    }
 }
+

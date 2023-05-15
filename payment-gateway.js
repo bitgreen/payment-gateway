@@ -144,15 +144,21 @@ async function mainloop(){
     });
     // function to generate a payment intent and store it
     app.get('/stripe/',async function (req, res) {
-        let p=req.query.p;
         let a=req.query.a;
         let r=req.query.r;
-        let rp=req.query.rp;
-        let rnp=req.query.rnp;
         let d=req.query.d;
-        let o=req.query.o;
-        let dp=req.query.dp;
-        let v=req.query.v;
+        if(typeof r==='undefined'){
+            res.json({error: "The reference id is missing, please use parameter r"});
+            return;
+        }
+        if(typeof a==='undefined'){
+            res.json({error: "The amount is missing, please use parameter a"});
+            return;
+        }
+        if(typeof d==='undefined'){
+            res.json({error: "The description is missing, please use parameter d"});
+            return;
+        }
 
         const paymentIntent = await stripe.paymentIntents.create({
               amount: a,

@@ -16,6 +16,11 @@ if (typeof MNEMONIC==='undefined'){
     console.log("MNEMONIC variable is not set, please set it for launching the validator");
     process.exit();
 }
+const MNEMONIC2 = process.env.MNEMONIC2;
+if (typeof MNEMONIC2==='undefined'){
+    console.log("MNEMONIC2 variable is not set, please set it for launching the validator");
+    process.exit();
+}
 const STRIPEAPIKEY = process.env.STRIPEAPIKEY;
 if (typeof STRIPEAPIKEY==='undefined'){
     console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
@@ -45,6 +50,9 @@ async function mainloop(){
   const keyring = new Keyring({ type: 'sr25519' });
   let keys=keyring.createFromUri(MNEMONIC);
   console.log("Validator Address: ",keys.address);
+  const keyring2 = new Keyring({ type: 'sr25519' });
+  let keys2=keyring2.createFromUri(MNEMONIC2);
+  console.log("Validator Address: ",keys2.address);
   const client = new Client();
   // connecting to database
   await client.connect();
@@ -91,7 +99,7 @@ async function mainloop(){
         }
         // validate the payment on bitgreen blockchain
         // validate Bitgreen blockchain
-        await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,api);
+        await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api);
         // update the paymentrequest (striperequest table accordingly)
         break;
       case 'payment_method.attached':
@@ -107,10 +115,24 @@ async function mainloop(){
 
   app.listen(4242, () => console.log('Webhook listening  on port 4242 '));
 }
-// function to confirm the payment on our blockchain
-async function validate_payment(orderid,blockchainid,tx,keys,api){
-            const validate = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
-            // Sign and send the transaction using our account
-            const hash = await validate.signAndSend(keys);
-            console.log("Validation submitted tx: ",hash.toHex());
+// function to submit the transaction to the blockchain
+async function validate_payment(orderid,blockchainid,tx,keys,api,keys2,api){
+    let ao=[];
+    if(orderid.search(",")==-1)
+        ao.push(orderid);
+    else
+        ao=orderid.split(",");
+    for(x in ao){
+        if(ao[x].length==0)
+            continue;
+	const validate = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
+	// Sign and send the transaction using our account with nonce to consider the queue
+    	const hash = await validate.signAndSend(keys,{ nonce: -1 });
+	console.log("Validation submitted tx: ",hash.toHex());
+	
+	 const validate2 = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
+         // Sign and send the transaction using our account
+         const hash2 = await validate.signAndSend(keys2);
+         console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
+    }
 }
