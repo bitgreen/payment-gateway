@@ -97,6 +97,14 @@ async function mainloop(){
             response.json({received: true});
             return;
         }
+        // check the amount for matching on chain fo
+         const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
+         if(totorders!=pi.amount_received){
+            console.log("ERROR: the payment amount does not matcht the orders on chain: ",pi.id,rs.rows[0]['amount'],pi.amount_received);
+            response.json({received: true});
+            return;
+         }
+         
         // validate the payment on bitgreen blockchain
         // validate Bitgreen blockchain
         await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api);
@@ -136,3 +144,25 @@ async function validate_payment(orderid,blockchainid,tx,keys,api,keys2,api){
          console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
     }
 }
+// function to compute the total amount to pay
+async function compute_total_order(orderid,api){
+    let ao=[];
+    if(orderid.search(",")==-1)
+        ao.push(orderid);
+    else
+        ao=orderid.split(",");
+    //console.log(ao);
+    let tot=0.0;
+    for(x in ao){
+        if(ao[x].length==0)
+            continue;
+        const d = await api.query.dex.orders(ao[x]);
+        const v=d.toHuman();
+        //console.log(v);
+        const amounts=v.pricePerUnit.replace(/,/g,"");
+        let amount=parseFloat(amounts.substring(0,amounts.length-18));
+       // console.log(amount);
+        let qnt=parseFloat(v.units);
+        tot=tot+amount*qnt;        
+    }
+    return(tot);

@@ -116,7 +116,14 @@ async function mainloop(){
             } catch (e) {
                 throw e;
             }
-            
+            // check the amount for matching on chain fo
+            const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
+            if(totorders!=(transaction['value']/1000000)){
+                console.log("ERROR: the payment amount does not matcht the orders on chain: ",pi.id,rs.rows[0]['amount'],pi.amount_received);
+                response.json({received: true});
+                return;
+             }
+                         
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
         }
     }
