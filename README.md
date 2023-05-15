@@ -28,7 +28,7 @@ the database contains one single table:
   Table "public.paymentrequests"
     Column     |            Type             | Collation | Nullable |        Default        
 ---------------+-----------------------------+-----------+----------+-----------------------
- referenceid   | character varying(32)       |           | not null | 
+ referenceid   | character varying(256)       |           | not null | 
  sender        | character varying(50)       |           | not null | 
  recipient     | character varying(50)       |           | not null | 
  amount        | numeric(36,18)              |           | not null | 
@@ -55,7 +55,7 @@ SET row_security = off;
 SET default_tablespace = '';
 SET default_table_access_method = heap;
 CREATE TABLE public.paymentrequests (
-    referenceid character varying(32) NOT NULL,
+    referenceid character varying(256) NOT NULL,
     sender character varying(50) NOT NULL,
     recipient character varying(50) NOT NULL,
     amount numeric(36,18) NOT NULL,
