@@ -99,8 +99,8 @@ async function mainloop(){
         }
         // check the amount for matching on chain fo
          const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
-         if(totorders!=pi.amount_received){
-            console.log("ERROR: the payment amount does not matcht the orders on chain: ",pi.id,rs.rows[0]['amount'],pi.amount_received);
+         if((totorders*100)!=pi.amount_received){
+            console.log("ERROR: the payment amount does not matcht the orders on chain: ",totorders,pi.id,rs.rows[0]['amount'],pi.amount_received);
             response.json({received: true});
             return;
          }
@@ -124,7 +124,7 @@ async function mainloop(){
   app.listen(4242, () => console.log('Webhook listening  on port 4242 '));
 }
 // function to submit the transaction to the blockchain
-async function validate_payment(orderid,blockchainid,tx,keys,api,keys2,api){
+async function validate_payment(orderid,blockchainid,tx,keys,keys2,api){
     let ao=[];
     if(orderid.search(",")==-1)
         ao.push(orderid);
@@ -144,6 +144,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,api,keys2,api){
          console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
     }
 }
+
 // function to compute the total amount to pay
 async function compute_total_order(orderid,api){
     let ao=[];
@@ -156,13 +157,19 @@ async function compute_total_order(orderid,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
-        const d = await api.query.dex.orders(ao[x]);
+        const d = await api.query.dex.buyOrders(ao[x]);
         const v=d.toHuman();
         //console.log(v);
-        const amounts=v.pricePerUnit.replace(/,/g,"");
-        let amount=parseFloat(amounts.substring(0,amounts.length-18));
+        let amount=0.00;
+        try {
+            const amounts=v.totalAmount.replace(/,/g,"");
+            amount=parseFloat(amounts.substring(0,amounts.length-16));
+        }catch(e){
+            console.log(e);
+            continue;
+        }
        // console.log(amount);
-        let qnt=parseFloat(v.units);
-        tot=tot+amount*qnt;        
+        tot=tot+amount/100;        
     }
     return(tot);
+}

@@ -112,15 +112,15 @@ async function mainloop(){
                     console.log("ERROR - referenceid not found");
                     return;
                 }
-                //console.log(rs);
+                console.log(rs);
             } catch (e) {
                 throw e;
             }
-            // check the amount for matching on chain fo
+            console.log(rs.rows[0]['referenceid']);
+            // check the amount for matching on chain 
             const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
             if(totorders!=(transaction['value']/1000000)){
-                console.log("ERROR: the payment amount does not matcht the orders on chain: ",pi.id,rs.rows[0]['amount'],pi.amount_received);
-                response.json({received: true});
+                console.log("ERROR: the payment amount does not matcht the orders on chain: ",(transaction['value']/1000000),totorders);
                 return;
              }
                          
@@ -145,4 +145,32 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
     	const hash = await validate.signAndSend(keys,{ nonce: -1 });
 	console.log("Validation submitted tx: ",hash.toHex());
     }
+}
+// function to compute the total amount to pay
+async function compute_total_order(orderid,api){
+    let ao=[];
+    if(orderid.search(",")==-1)
+        ao.push(orderid);
+    else
+        ao=orderid.split(",");
+    //console.log(ao);
+    let tot=0.0;
+    for(x in ao){
+        if(ao[x].length==0)
+            continue;
+        const d = await api.query.dex.buyOrders(ao[x]);
+        const v=d.toHuman();
+        console.log(v);
+        let amount=0.00;
+        try {
+            const amounts=v.totalAmount.replace(/,/g,"");
+            amount=parseFloat(amounts.substring(0,amounts.length-16));
+        }catch(e){
+            console.log(e);
+            continue;
+        }
+       // console.log(amount);
+        tot=tot+amount/100;        
+    }
+    return(tot);
 }
