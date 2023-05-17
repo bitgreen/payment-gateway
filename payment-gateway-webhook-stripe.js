@@ -84,26 +84,54 @@ async function mainloop(){
         } catch (e) {
           throw e;
         }
-        //console.log(rs);
+        //console.log(pi);
         if(typeof rs.rows[0]==='undefined'){
             console.log("ERROR: the payment id has not been found:",pi.id);
             response.json({received: true});
             return;
         }
         // verify the data event with the stored record to avoid injections
+        // get fees and seller from buyorder
+        let fees=0.0;
+        let selleraddress='';
+        let token='';        
+        const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
+        const bov=bo.toHuman();
+        fees=bov.totalFee;
+        const assetid=bov.orderId;
+        const ai= await api.query.assets.asset(bov.assetId);
+        const aiv=ai.toHuman();
+        // get last block hash
+        const { hash, parentHash } = await api.rpc.chain.getHeader();
+
+        selleraddress=aiv.owner;
+        // store the payment data
+        try {
+              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10)';
+              await client.query(queryText, [rs.rows[0]['referenceid'],"","",pi.amount_received/100,fees,selleraddress,token,0,rs.rows[0]['stripeid'],hash.toHex()]);
+        } catch (e) {
+                throw e;
+        } 
+        // check for currency =usd
+         if(pi.currency!='usd'){
+             console.log("ERROR: the currency received is wrong, possible hacking attempt");
+             response.json({received: true});
+             return;
+         }                   
         // verify amount
         if((rs.rows[0]['amount']*100)!=pi.amount_received){
-            console.log("ERROR: the payment amount does not matcht the order: ",pi.id,rs.rows[0]['amount'],pi.amount_received);
+            console.log("ERROR: the payment amount does not match the order (1): ",pi.id,rs.rows[0]['amount']*100,pi.amount_received);
             response.json({received: true});
             return;
         }
-        // check the amount for matching on chain fo
+        // check the amount for matching on chain
          const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
          if((totorders*100)!=pi.amount_received){
-            console.log("ERROR: the payment amount does not matcht the orders on chain: ",totorders,pi.id,rs.rows[0]['amount'],pi.amount_received);
+            console.log("ERROR: the payment amount does not match the orders on chain (2): ",totorders,pi.id,rs.rows[0]['amount'],pi.amount_received);
             response.json({received: true});
             return;
          }
+
          
         // validate the payment on bitgreen blockchain
         // validate Bitgreen blockchain
