@@ -101,10 +101,11 @@ async function mainloop(){
             console.log("#######################################");
             // get orderid
             let orderid=1;
+            let amount=0;
             try {
-                const queryText="SELECT referenceid from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
+                const queryText="SELECT * from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
                 console.log(queryText);
-                let amount=transaction['value']/1000000;
+                amount=transaction['value']/1000000;
                 console.log([transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
                 rs=await client.query(queryText, [transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
                 //console.log(rs);
@@ -112,10 +113,31 @@ async function mainloop(){
                     console.log("ERROR - referenceid not found");
                     return;
                 }
-                console.log(rs);
+                //console.log(rs);
             } catch (e) {
                 throw e;
             }
+            // store payment data
+            let fees=0.0;
+            let selleraddress='';
+            let token='USDT';        
+            const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
+            const bov=bo.toHuman();
+            fees=bov.totalFee;
+            const assetid=bov.orderId;
+            const ai= await api.query.assets.asset(bov.assetId);
+            const aiv=ai.toHuman();
+            // get last block hash
+            const { hash, parentHash } = await api.rpc.chain.getHeader();
+            selleraddress=aiv.owner;
+            // store the payment data
+            try {
+              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10)';
+              await client.query(queryText, [rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex()]);
+            } catch (e) {
+                throw e;
+            } 
+            
             console.log(rs.rows[0]['referenceid']);
             // check the amount for matching on chain 
             const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
@@ -123,7 +145,8 @@ async function mainloop(){
                 console.log("ERROR: the payment amount does not matcht the orders on chain: ",(transaction['value']/1000000),totorders);
                 return;
              }
-                         
+            
+            //validate orders                         
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
         }
     }
