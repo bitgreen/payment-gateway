@@ -161,12 +161,12 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
-	const validate = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
+	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
 	// Sign and send the transaction using our account with nonce to consider the queue
     	const hash = await validate.signAndSend(keys,{ nonce: -1 });
 	console.log("Validation submitted tx: ",hash.toHex());
 	
-	 const validate2 = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
+	 const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
          // Sign and send the transaction using our account
          const hash2 = await validate.signAndSend(keys2);
          console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);

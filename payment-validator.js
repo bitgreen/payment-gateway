@@ -120,9 +120,11 @@ async function mainloop(){
             // store payment data
             let fees=0.0;
             let selleraddress='';
-            let token='USDT';        
+            let token='USDT';
+            console.log(rs.rows[0]);        
             const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
             const bov=bo.toHuman();
+            console.log(bov);
             fees=bov.totalFee;
             const assetid=bov.orderId;
             const ai= await api.query.assets.asset(bov.assetId);
