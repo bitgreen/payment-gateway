@@ -92,12 +92,14 @@ async function mainloop(){
         }
         // verify the data event with the stored record to avoid injections
         // get fees and seller from buyorder
+        /*
         let fees=0.0;
         let selleraddress='';
-        let token='';        
-        const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
+        let token='';       
+        fees=compute_totalfees_order(rs.rows[0]['referenceid'],api);
         const bov=bo.toHuman();
         fees=bov.totalFee;
+        
         const assetid=bov.orderId;
         const ai= await api.query.assets.asset(bov.assetId);
         const aiv=ai.toHuman();
@@ -111,7 +113,7 @@ async function mainloop(){
               await client.query(queryText, [rs.rows[0]['referenceid'],"","",pi.amount_received/100,fees,selleraddress,token,0,rs.rows[0]['stripeid'],hash.toHex()]);
         } catch (e) {
                 throw e;
-        } 
+        } */
         // check for currency =usd
          if(pi.currency!='usd'){
              console.log("ERROR: the currency received is wrong, possible hacking attempt");
@@ -161,14 +163,15 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
+        console.log("ao[x]",ao[x],blockchainid,tx)
 	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
 	// Sign and send the transaction using our account with nonce to consider the queue
     	const hash = await validate.signAndSend(keys,{ nonce: -1 });
 	console.log("Validation submitted tx: ",hash.toHex());
-	
+        console.log("ao[x]",ao[x],blockchainid,tx)	
 	 const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
          // Sign and send the transaction using our account
-         const hash2 = await validate.signAndSend(keys2);
+         const hash2 = await validate.signAndSend(keys2,{ nonce: -1 });
          console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
     }
 }
@@ -185,12 +188,41 @@ async function compute_total_order(orderid,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
+        console.log("ao[x]",ao[x]);
         const d = await api.query.dex.buyOrders(ao[x]);
         const v=d.toHuman();
         //console.log(v);
         let amount=0.00;
         try {
             const amounts=v.totalAmount.replace(/,/g,"");
+            amount=parseFloat(amounts.substring(0,amounts.length-16));
+        }catch(e){
+            console.log(e);
+            continue;
+        }
+       // console.log(amount);
+        tot=tot+amount/100;        
+    }
+    return(tot);
+}
+async function compute_totalfees_order(orderid,api){
+    let ao=[];
+    if(orderid.search(",")==-1)
+        ao.push(orderid);
+    else
+        ao=orderid.split(",");
+    //console.log(ao);
+    let tot=0.0;
+    for(x in ao){
+        if(ao[x].length==0)
+            continue;
+        console.log("ao[x]",ao[x]);
+        const d = await api.query.dex.buyOrders(ao[x]);
+        const v=d.toHuman();
+        //console.log(v);
+        let amount=0.00;
+        try {
+            const amounts=v.totalFee.replace(/,/g,"");
             amount=parseFloat(amounts.substring(0,amounts.length-16));
         }catch(e){
             console.log(e);

@@ -117,6 +117,7 @@ async function mainloop(){
             } catch (e) {
                 throw e;
             }
+            /*
             // store payment data
             let fees=0.0;
             let selleraddress='';
@@ -139,6 +140,7 @@ async function mainloop(){
             } catch (e) {
                 throw e;
             } 
+            */
             
             console.log(rs.rows[0]['referenceid']);
             // check the amount for matching on chain 
@@ -165,7 +167,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
-	const validate = api.tx.dex.validateBuyOrder(orderid,blockchainid,tx);
+	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
 	// Sign and send the transaction using our account with nonce to consider the queue
     	const hash = await validate.signAndSend(keys,{ nonce: -1 });
 	console.log("Validation submitted tx: ",hash.toHex());
