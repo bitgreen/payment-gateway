@@ -2,6 +2,7 @@
 const { Client } = require('pg');
 const Web3 = require('web3');
 const fs = require('fs');
+const stripe = require('stripe')('sk_test_51MDq0VKluWo1Xbjw9dB5xdWgGUulDA6ckewLKyz4wdQee6yrxX5QhhJ5oblHgWhVApt2VDOlHH0JxARlaimxnC5s00Laa66Evw');
 
 console.log("Payment Gateway Settlement 1.0 - Starting");
 // get environment variables
@@ -124,11 +125,36 @@ async function mainloop(){
 async function make_payment(selleraddress,amount,orders){
     // TODO, fetch the payment method and coordinates
     // use static data for testing for now
+    //---
     let paymentmethod='ethusdt';
     let recipient="0x8cD6F362F061B97EACb9252b820a8Acecd7e3229"
+    //---
     let tokenaddress='';
     let web3l;
     let chainid=0;
+    if(paymentmethod=="stripe"){
+        //send payment from stripe account to recipient
+        try{
+            const transfer = await stripe.transfers.create({
+                amount: amount,
+                currency: "usd",
+                destination: recipient,});
+        } catch(e){
+            console.log(e);
+            return;
+        }
+        for(i in orders){
+            console.log("Updating order: ",orders[i]);
+            try {
+                const queryText="update paymentsreceived set settled_on=NOW(),settled_amount=amount-fees,settled_chainid=$1,settled_paymentid=$2 where referenceid=$3";
+                console.log(queryText);
+                console.log([chainid,transfer.id,orders[i]]);
+                await client.query(queryText,[chainid,res,orders[i]]);
+            } catch (e) {
+                throw e;
+            }
+        }
+    }
     if(paymentmethod=='ethusdt'){
         tokenAddress=ETHUSDTADDRESS;
         web3l=web3;
