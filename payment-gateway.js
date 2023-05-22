@@ -270,6 +270,14 @@ async function mainloop(){
             }
         // insert new record            
         if(rs.rows[0]['tot']==0){
+            // cancel any pending order for the same accounts and amount
+            try {
+              const queryText = 'delete from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and originaddress=$4 and chainid=$5)';
+              await client.query(queryText, [sender,recipient,amount,originaddress,parseInt(chainid)]);
+            } catch (e) {
+                throw e;
+            }
+            // add the payment request
             try {
               const queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress,chainid) values($1,$2,$3,$4,$5,current_timestamp,$6,$7)';
               await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,parseInt(chainid)]);

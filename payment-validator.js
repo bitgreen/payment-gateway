@@ -108,7 +108,7 @@ async function mainloop(){
                 amount=transaction['value']/1000000;
                 console.log([transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
                 rs=await client.query(queryText, [transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
-                //console.log(rs);
+                console.log(rs);
                 if(rs['rowCount']==0){
                     console.log("ERROR - referenceid not found");
                     return;

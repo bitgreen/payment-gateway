@@ -41,6 +41,17 @@ if (typeof ABI==='undefined'){
     process.exit();
 }
 const ABIJSON=fs.readFileSync(ABI,"ascii");
+
+const TESTNETENABLED = process.env.TESTNETENABLED;
+if (typeof TESTNETENABLED==='undefined'){
+    console.log("TESTNETENABLED variable is not set, please set it for launching the validator");
+    process.exit();
+}
+const MINIMUMAMOUNT = process.env.MINIMUMAMOUNT;
+if (typeof MINIMUMAMOUNT==='undefined'){
+    console.log("MINIMUMAMOUNT variable is not set, please set it for launching the validator");
+    process.exit();
+}
 // connect Ethereum/Polygon node
 console.log("Connecting Ethereum Node");
 const web3 = new Web3(ETHEREUMNODE);
@@ -54,8 +65,11 @@ async function mainloop(){
     await client.connect();
     let rs;
     try {
-        // TODO  add filter to avoid testnet chains and do not not consider the same day transactions
-        const queryText="SELECT * from paymentsreceived where settled_on is NULL order by selleraddress  desc";
+        let queryText='';
+        if(TESTNETENABLED=="yes")
+          queryText="SELECT * from paymentsreceived where settled_on is NULL order by selleraddress  desc";
+        else
+          queryText="SELECT * from paymentsreceived where settled_on is NULL and (chainid==0 or chainid==1 or chainid=137) order by selleraddress  desc";
         rs=await client.query(queryText,[]);
         if(rs['rowCount']==0){
             console.log("No payments to settle");
@@ -78,8 +92,10 @@ async function mainloop(){
             //settlement for the current seller
             if(seller!=''){
                 console.log("Payment of: ",totamount-totfees," to: ",seller, " for: ",orders);
-                //TODO check for minimum amount
-                await make_payment(seller,(totamount-totfees),orders,client);
+                if((totamount-totfees)>parseFloat(MINIMUMAMOUNT))
+                    await make_payment(seller,(totamount-totfees),orders,client);
+                else
+                    console.log("Under the minimum amount for payment");
             }
             // continue to next seller
             seller=r['selleraddress'];
@@ -92,19 +108,22 @@ async function mainloop(){
         orders.push(r['referenceid']);
         console.log(totamount,totfees);
     }
+    // execute the payment for the last seller
     if(seller!=''){
         console.log("Payment of: ",totamount,"fees: ",totfees," to: ",seller, " for: ",orders);
-        //TODO check for minimum amount
-        await make_payment(seller,(totamount-totfees),orders,client);
+        if((totamount-totfees)>parseFloat(MINIMUMAMOUNT))
+            await make_payment(seller,(totamount-totfees),orders,client);
+        else
+         console.log("Under the minimum amount for payment");
     }
-    //client.end();
+    client.end();
         
 }
 
 // function to make payment
 async function make_payment(selleraddress,amount,orders){
     // TODO, fetch the payment method and coordinates
-    // use static data for testing
+    // use static data for testing for now
     let paymentmethod='ethusdt';
     let recipient="0x8cD6F362F061B97EACb9252b820a8Acecd7e3229"
     let tokenaddress='';
