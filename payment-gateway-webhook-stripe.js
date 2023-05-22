@@ -90,30 +90,6 @@ async function mainloop(){
             response.json({received: true});
             return;
         }
-        // verify the data event with the stored record to avoid injections
-        // get fees and seller from buyorder
-        /*
-        let fees=0.0;
-        let selleraddress='';
-        let token='';       
-        fees=compute_totalfees_order(rs.rows[0]['referenceid'],api);
-        const bov=bo.toHuman();
-        fees=bov.totalFee;
-        
-        const assetid=bov.orderId;
-        const ai= await api.query.assets.asset(bov.assetId);
-        const aiv=ai.toHuman();
-        // get last block hash
-        const { hash, parentHash } = await api.rpc.chain.getHeader();
-
-        selleraddress=aiv.owner;
-        // store the payment data
-        try {
-              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10)';
-              await client.query(queryText, [rs.rows[0]['referenceid'],"","",pi.amount_received/100,fees,selleraddress,token,0,rs.rows[0]['stripeid'],hash.toHex()]);
-        } catch (e) {
-                throw e;
-        } */
         // check for currency =usd
          if(pi.currency!='usd'){
              console.log("ERROR: the currency received is wrong, possible hacking attempt");
@@ -132,13 +108,15 @@ async function mainloop(){
             console.log("ERROR: the payment amount does not match the orders on chain (2): ",totorders,pi.id,rs.rows[0]['amount'],pi.amount_received);
             response.json({received: true});
             return;
-         }
-
+        }
+        // store the payment received
+        await store_orders_paid(rs.rows[0]['referenceid'],api,client,pi.currency,rs.rows[0]['stripeid']);
          
         // validate the payment on bitgreen blockchain
-        // validate Bitgreen blockchain
         await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api);
+        
         // update the paymentrequest (striperequest table accordingly)
+        // TODO
         break;
       case 'payment_method.attached':
         const paymentMethod = event.data.object;
@@ -205,7 +183,9 @@ async function compute_total_order(orderid,api){
     }
     return(tot);
 }
-async function compute_totalfees_order(orderid,api){
+
+//function to store the orders paid in the database for future settlement
+async function store_orders_paid(orderid,api,client,token,stripeid){
     let ao=[];
     if(orderid.search(",")==-1)
         ao.push(orderid);
@@ -219,17 +199,37 @@ async function compute_totalfees_order(orderid,api){
         console.log("ao[x]",ao[x]);
         const d = await api.query.dex.buyOrders(ao[x]);
         const v=d.toHuman();
-        //console.log(v);
         let amount=0.00;
         try {
-            const amounts=v.totalFee.replace(/,/g,"");
+            const amounts=v.totalAmount.replace(/,/g,"");
             amount=parseFloat(amounts.substring(0,amounts.length-16));
         }catch(e){
-            console.log(e);
-            continue;
+            console.log("Compute amount:m",e);
         }
-       // console.log(amount);
-        tot=tot+amount/100;        
+        let fees=0.00;
+        try {
+            const feess=v.totalFee.replace(/,/g,"");
+            fees=parseFloat(amounts.substring(0,fees.length-16));
+        }catch(e){
+            console.log("Computing fees:",e);
+        }
+        let selleraddress='';
+        let token='';       
+        
+        const assetid=v.orderId;
+        const ai= await api.query.assets.asset(bov.assetId);
+        const aiv=ai.toHuman();
+        // get last block hash
+        const { hash, parentHash } = await api.rpc.chain.getHeader();
+
+        selleraddress=aiv.owner;
+        // store the payment data
+        try {
+              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10)';
+              await client.query(queryText, [v.orderId,"","",amount,fees,selleraddress,token,0,rs.rows[0]['stripeid'],hash.toHex()]);
+        } catch (e) {
+                throw e;
+        } 
     }
     return(tot);
 }
