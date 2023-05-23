@@ -53,6 +53,11 @@ if (typeof MINIMUMAMOUNT==='undefined'){
     console.log("MINIMUMAMOUNT variable is not set, please set it for launching the validator");
     process.exit();
 }
+const BANKTRANSFERFEES = process.env.BANKTRANSFERFEES;
+if (typeof BANKTRANSFERFEES==='undefined'){
+    console.log("BANKTRANSFERFEES variable is not set, please set it for launching the validator");
+    process.exit();
+}
 // connect Ethereum/Polygon node
 console.log("Connecting Ethereum Node");
 const web3 = new Web3(ETHEREUMNODE);
@@ -157,7 +162,7 @@ async function make_payment(selleraddress,amount,orders){
         //send payment from stripe account to recipient
         try{
             const transfer = await stripe.transfers.create({
-                amount: amount,
+                amount: (amount-BANKTRANSFERFEES),
                 currency: "usd",
                 destination: recipient,});
         } catch(e){
