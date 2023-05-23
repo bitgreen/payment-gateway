@@ -60,9 +60,30 @@ console.log("Connecting Polygon Node");
 const web3p= new Web3(POLYGONNODE);
 console.log("Processing Settlements");
 const client = new Client();
+// global prices vars
+let ETHPRICE=0.0;
+let MATICPRICE=0.0;
+
 mainloop();
 async function mainloop(){
-    // connect to the database posttgres
+    // get current values of Etherum and Matic
+    let response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+    let responsej = await response.json();
+    console.log("eth price: ",responsej['ethereum']['usd']);
+    ETHPRICE=responsej['ethereum']['usd'];
+    
+    response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
+    responsej = await response.json();
+    console.log("matic price: ",responsej['matic-network']['usd']);
+    MATICPRICE=responsej['matic-network']['usd'];
+    if(ETHPRICE<=0){
+        throw("Eth price is not available");
+    }
+    if(MATICPRICE<=0){
+        throw("Matic price is not available");
+    }
+
+    // connect to the database postgres
     await client.connect();
     let rs;
     try {
@@ -168,7 +189,6 @@ async function make_payment(selleraddress,amount,orders){
     // transfer USDT
     // create contract object    
     let contract = new web3l.eth.Contract(JSON.parse(ABIJSON), tokenAddress, { from: WALLETADDRESS });
-    //TODO decrease the amount of the gas fees
     //convert amount in hex
     amount=amount*1000000; // 6 decimals
     let amounthex = web3l.utils.toHex(amount); 
@@ -183,7 +203,27 @@ async function make_payment(selleraddress,amount,orders){
        "data": data,
        "from": WALLETADDRESS
    };
-   console.log(txObj);
+   // estimate gas cost
+   const gasPrice = web3.eth.getGasPrice(); // estimate the gas price
+   const gasLimit = web3.eth.estimateGas(txObj); // fetch gas limit for the tx
+   const transactionFee = gasPrice * gasLimit;  // tx fees in native coin Eth/Matic
+   // rebuild data and txObj based on the reduced amount and gas limits
+   if(paymentmethod=='ethusdt')
+       cp=ETHPRICE;
+   if(paymentmethod=='polyusdt')
+       cp=MATICPRICE;
+   const txfeesusdt=transactionFee/1000000000000*cp;
+   console.log("tx fees in usdt: ",txfeesusdt," tx fees: ",transactionFee);
+   amount=amount-txfeesusdt;
+   amounthex = web3l.utils.toHex(amount);
+   data = contract.methods.transfer(recipient, amounthex).encodeABI();
+   txObj = {
+       gas: web3l.utils.toHex(gasLimit),
+       "to": tokenAddress,
+       "value": "0x00",
+       "data": data,
+       "from": WALLETADDRESS
+   };
    //   return;
    //sign and send the tx
    web3l.eth.accounts.signTransaction(txObj, WALLETPRIVATEKEY, async (err, signedTx) => {
@@ -217,9 +257,7 @@ async function make_payment(selleraddress,amount,orders){
 
 
     
-    // bank transfer by Stripe
-    // update settlement data on the database
-    // write settlement data on chain
+    // TODO write settlement data on chain
     return;
 }
 // TODOverify liquidity available and consolidate if necessary
