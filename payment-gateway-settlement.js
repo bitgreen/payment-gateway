@@ -3,6 +3,8 @@ const { Client } = require('pg');
 const Web3 = require('web3');
 const fs = require('fs');
 const stripe = require('stripe')('sk_test_51MDq0VKluWo1Xbjw9dB5xdWgGUulDA6ckewLKyz4wdQee6yrxX5QhhJ5oblHgWhVApt2VDOlHH0JxARlaimxnC5s00Laa66Evw');
+const { ApiPromise, WsProvider } = require('@polkadot/api');
+const { Keyring } = require('@polkadot/keyring');
 
 console.log("Payment Gateway Settlement 1.0 - Starting");
 // get environment variables
@@ -58,6 +60,16 @@ if (typeof BANKTRANSFERFEES==='undefined'){
     console.log("BANKTRANSFERFEES variable is not set, please set it for launching the validator");
     process.exit();
 }
+const BITGREENBLOCKCHAIN = process.env.BITGREENBLOCKCHAIN;
+if (typeof BITGREENBLOCKCHAIN=='=undefined'){
+    console.log("BITGREENBLOCKCHAIN variable is not set, please set it for launching the validator");
+    process.exit();
+}
+const MNEMONIC = process.env.MNEMONIC;
+if (typeof MNEMONIC==='undefined'){
+    console.log("MNEMONIC variable is not set, please set it for launching the validator");
+    process.exit();
+}
 // connect Ethereum/Polygon node
 console.log("Connecting Ethereum Node");
 const web3 = new Web3(ETHEREUMNODE);
@@ -71,6 +83,12 @@ let MATICPRICE=0.0;
 
 mainloop();
 async function mainloop(){
+     //connect BITGREEN CHAIN
+    const wsProvider = new WsProvider(BITGREENBLOCKCHAIN);
+    const api = await ApiPromise.create({ provider: wsProvider });
+    const keyring = new Keyring({ type: 'sr25519' });
+    let keys=keyring.createFromUri(MNEMONIC);
+    console.log("Payment Executor Address: ",keys.address);
     // get current values of Etherum and Matic
     let response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
     let responsej = await response.json();
@@ -120,7 +138,7 @@ async function mainloop(){
             if(seller!=''){
                 console.log("Payment of: ",totamount-totfees," to: ",seller, " for: ",orders);
                 if((totamount-totfees)>parseFloat(MINIMUMAMOUNT))
-                    await make_payment(seller,(totamount-totfees),orders,client);
+                    await make_payment(seller,(totamount-totfees),orders,client,api,keys);
                 else
                     console.log("Under the minimum amount for payment");
             }
@@ -139,7 +157,7 @@ async function mainloop(){
     if(seller!=''){
         console.log("Payment of: ",totamount,"fees: ",totfees," to: ",seller, " for: ",orders);
         if((totamount-totfees)>parseFloat(MINIMUMAMOUNT))
-            await make_payment(seller,(totamount-totfees),orders,client);
+            await make_payment(seller,(totamount-totfees),orders,client,api,keys);
         else
          console.log("Under the minimum amount for payment");
     }
@@ -148,7 +166,7 @@ async function mainloop(){
 }
 
 // function to make payment
-async function make_payment(selleraddress,amount,orders){
+async function make_payment(selleraddress,amount,orders,api,keys){
     // TODO, fetch the payment method and coordinates
     // use static data for testing for now
     //---
@@ -180,6 +198,11 @@ async function make_payment(selleraddress,amount,orders){
                 throw e;
             }
         }
+        // update bitgreen blockchain
+        const validate = api.tx.dex.recordPaymentToSeller(orders,0,seller,transfer.id);
+        // Sign and send the transaction using our account with nonce to consider the queue
+        const hash = await validate.signAndSend(keys,{ nonce: -1 });
+        console.log("Validation submitted tx: ",hash.toHex());
     }
     if(paymentmethod=='ethusdt'){
         tokenAddress=ETHUSDTADDRESS;
@@ -253,16 +276,16 @@ async function make_payment(selleraddress,amount,orders){
                          throw e;
                      }
                    }
+                   const validate = api.tx.dex.recordPaymentToSeller(orders,chainid,recipient,res);
+                   // Sign and send the transaction using our account with nonce to consider the queue
+                   const hash = await validate.signAndSend(keys,{ nonce: -1 });
+                   console.log("Validation submitted tx: ",hash.toHex());
                }
            });
        }
    });
+   // TODO write settlement data on chain
 
-
-
-
-    
-    // TODO write settlement data on chain
-    return;
+   return;
 }
 // TODOverify liquidity available and consolidate if necessary
