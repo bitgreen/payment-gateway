@@ -199,7 +199,7 @@ async function make_payment(selleraddress,amount,orders,api,keys){
             }
         }
         // update bitgreen blockchain
-        const validate = api.tx.dex.recordPaymentToSeller(orders,0,seller,transfer.id);
+        const validate = api.tx.dex.recordPaymentToSeller(orders,0,seller,(amount-BANKTRANSFERFEES),transfer.id);
         // Sign and send the transaction using our account with nonce to consider the queue
         const hash = await validate.signAndSend(keys,{ nonce: -1 });
         console.log("Validation submitted tx: ",hash.toHex());
@@ -276,7 +276,7 @@ async function make_payment(selleraddress,amount,orders,api,keys){
                          throw e;
                      }
                    }
-                   const validate = api.tx.dex.recordPaymentToSeller(orders,chainid,recipient,res);
+                   const validate = api.tx.dex.recordPaymentToSeller(orders,chainid,recipient,amount,res);
                    // Sign and send the transaction using our account with nonce to consider the queue
                    const hash = await validate.signAndSend(keys,{ nonce: -1 });
                    console.log("Validation submitted tx: ",hash.toHex());

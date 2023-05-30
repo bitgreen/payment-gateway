@@ -7,7 +7,15 @@ const express = require('express');
 const  fs = require('fs');
 const { Client } = require('pg')
 const stripe = require('stripe')('sk_test_51MDq0VKluWo1Xbjw9dB5xdWgGUulDA6ckewLKyz4wdQee6yrxX5QhhJ5oblHgWhVApt2VDOlHH0JxARlaimxnC5s00Laa66Evw');
-
+// Polkadot.js to connect to the Substrate chain
+const { ApiPromise, WsProvider } = require('@polkadot/api');
+// read environment variables
+const SUBSTRATE = process.env.SUBSTRATE;
+if (typeof SUBSTRATE=='=undefined'){
+    console.log("SUBSTRATE variable is not set, please set it for launching the validator");
+    process.exit();
+}
+// setup the web server based on "express"
 let app = express();
 // read environment variables
 const SSL_CERT = process.env.SSL_CERT
@@ -25,10 +33,15 @@ console.log("[INFO] Listening for connections");
 
 // main loop to use async functions
 async function mainloop(){
+    // connect to the Postgresql DB
     const client = new Client();
     await client.connect();
+    // connect to the substrate Node:
+    const wsProvider = new WsProvider(SUBSTRATE);
+    const api = await ApiPromise.create({ provider: wsProvider });    
+    
+    // manage the API 
     app.get('/', async function (req, res) {
-
         let p=req.query.p;
         let a=req.query.a;
         let r=req.query.r;
@@ -38,8 +51,6 @@ async function mainloop(){
         let o=req.query.o;
         let dp=req.query.dp;
         let v=req.query.v;
-        console.log("Received call - p: ",p,"a: ",a,"r: ",r,"rp: ","rp: ",rp,"rnp: ",rnp," d: ",d,"o: ",o);
-        
         // p is the payment method: 
         // r is the referenceid
         // rp is the url to redirect for successfully payment
@@ -268,37 +279,45 @@ async function mainloop(){
             } catch (e) {
                 throw e;
             }
+        // read last block hash
+        const blockhash = await api.query.system.parentHash();
         // insert new record            
         if(rs.rows[0]['tot']==0){
             // cancel any pending order for the same accounts and amount
+            let queryText="";
             try {
-              const queryText = 'delete from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and originaddress=$4 and chainid=$5)';
+              queryText = 'delete from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and originaddress=$4 and chainid=$5';
               await client.query(queryText, [sender,recipient,amount,originaddress,parseInt(chainid)]);
             } catch (e) {
+                console.log(queryText,e);
                 throw e;
             }
             // add the payment request
             try {
-              const queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress,chainid) values($1,$2,$3,$4,$5,current_timestamp,$6,$7)';
-              await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,parseInt(chainid)]);
+              queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress,chainid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8)';
+              await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,parseInt(chainid),blockhash.toString()]);
             } catch (e) {
+                console.log(queryText,e);
                 throw e;
             }
         }
         else {
         // update some fields only to avoid an injection attack to replace the orderid to associate the payment to a different orderid
             try {
-              const queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,chainid=$6,created_on=current_timestamp where referenceid=$5';
-              await client.query(queryText, [token,sender,recipient,amount,referenceid,parseInt(chainid)]);
+              queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,chainid=$6,blockhash=$7,created_on=current_timestamp where referenceid=$5';
+              await client.query(queryText, [token,sender,recipient,amount,referenceid,parseInt(chainid),blockhash.toString()]);
             } catch (e) {
+                console.log(queryText,e);
                 throw e;
             }            
         }
             res.send("OK");
     });
+    // send static files from html folder
     app.use(express.static('html'));
-        
+    // listen on port 3000        
     let server = app.listen(3000, function () { });
+    // it can manage directly a https connection, but may be better to use NGINX as reverse proxy.
     if (typeof SSL_CERT !== 'undefined' && SSL_KEY !== 'undefined') {
         // loading certificate/key
         const options = {
