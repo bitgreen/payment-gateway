@@ -37,9 +37,14 @@ if (typeof MNEMONIC==='undefined'){
     console.log("MNEMONIC variable is not set, please set it for launching the validator");
     process.exit();
 }
-const BITGREENBLOCKCHAIN = process.env.BITGREENBLOCKCHAIN;
-if (typeof BITGREENBLOCKCHAIN=='=undefined'){
-    console.log("BITGREENBLOCKCHAIN variable is not set, please set it for launching the validator");
+const SUBSTRATECHAIN = process.env.SUBSTRATECHAIN;
+if (typeof SUBSTRATECHAIN=='=undefined'){
+    console.log("SUBSTRATECHAIN variable is not set, please set it for launching the validator");
+    process.exit();
+}
+const BLOCKSCONFIRMATION = process.env.BLOCKSCONFIRMATION;
+if (typeof BLOCKSCONFIRMATION=='=undefined'){
+    console.log("BLOCKSCONFIRMATION variable is not set, please set it for launching the validator");
     process.exit();
 }
 //console.log(BLOCKCHAIN);
@@ -51,7 +56,7 @@ console.log("Payment Validator v.1.0 - Listening for new events on token ", TOKE
 mainloop();
 async function mainloop(){
     //connect BITGREEN CHAIN
-    const wsProvider = new WsProvider(BITGREENBLOCKCHAIN);
+    const wsProvider = new WsProvider(SUBSTRATECHAIN);
     const api = await ApiPromise.create({ provider: wsProvider });
     const keyring = new Keyring({ type: 'sr25519' });
     let keys=keyring.createFromUri(MNEMONIC);
@@ -117,15 +122,22 @@ async function mainloop(){
             } catch (e) {
                 throw e;
             }
-            /*
-            // store payment data
+            console.log(rs.rows[0]['referenceid']);
+            // check the amount for matching on chain 
+            const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
+            if(totorders!=(transaction['value']/1000000)){
+                console.log("ERROR: the payment amount does not matcht the orders on chain: ",(transaction['value']/1000000),totorders);
+                return;
+             }
+            /* 
+            // store payment data in the local database
             let fees=0.0;
             let selleraddress='';
             let token='USDT';
-            console.log(rs.rows[0]);        
+            //console.log(rs.rows[0]);        
             const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
             const bov=bo.toHuman();
-            console.log(bov);
+            //console.log(bov);
             fees=bov.totalFee;
             const assetid=bov.orderId;
             const ai= await api.query.assets.asset(bov.assetId);
@@ -141,17 +153,9 @@ async function mainloop(){
                 throw e;
             } 
             */
-            
-            console.log(rs.rows[0]['referenceid']);
-            // check the amount for matching on chain 
-            const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
-            if(totorders!=(transaction['value']/1000000)){
-                console.log("ERROR: the payment amount does not matcht the orders on chain: ",(transaction['value']/1000000),totorders);
-                return;
-             }
-            
-            //validate orders                         
+            //validate orders on Substrate
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
+            
         }
     }
 
@@ -167,10 +171,20 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
-	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
-	// Sign and send the transaction using our account with nonce to consider the queue
-    	const hash = await validate.signAndSend(keys,{ nonce: -1 });
-	console.log("Validation submitted tx: ",hash.toHex());
+        if(BLOCKSCONFIRMATION>1){
+            //store in the queue
+            try {
+              const queryText = 'INSERT INTO validationsqueue(validatoraddress,buyorderid,txhash,chainid) values($1,$2,$3,$4)';
+              await client.query(queryText, [keys.address,orderid,tx,blockchainid]);
+            } catch (e) {
+                throw e;
+            } 
+        }else{
+        	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+        	// Sign and send the transaction using our account with nonce to consider the queue
+        	const hash = await validate.signAndSend(keys,{ nonce: -1 });
+        	console.log("Validation submitted tx: ",hash.toHex());
+        }
     }
 }
 // function to compute the total amount to pay

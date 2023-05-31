@@ -67,6 +67,23 @@ CREATE TABLE public.paymentrequests (
 ALTER TABLE public.paymentrequests OWNER TO postgres;
 ALTER TABLE ONLY public.paymentrequests ADD CONSTRAINT paymentrequests_pkey PRIMARY KEY (referenceid);
 GRANT ALL ON TABLE public.paymentrequests TO paymentgateway;
+
+CREATE TABLE public.paymentsreceived (
+    referenceid character varying(256) NOT NULL,
+    sender character varying(50) NOT NULL,
+    recipient character varying(50) NOT NULL,
+    amount numeric(36,18) NOT NULL,
+    fees numeric(36,18) NOT NULL,
+    created_on timestamp without time zone NOT NULL,
+    selleraddress character varying(64) DEFAULT ''::character varying NOT NULL,
+    token character varying(10) DEFAULT ''::character varying NOT NULL,
+    chainid integer DEFAULT 1 NOT NULL,
+    paymentid character varying(256) NOT NULL,
+    settled_on timestamp without time zone NOT NULL,
+    settled_amount numeric(36,18) NOT NULL,
+    settled_chainid integer DEFAULT 1 NOT NULL,
+    settled_paymentid character varying(256) NOT NULL
+);
 ```
 
 You should configure an NGINX serve proxy to connect by https.

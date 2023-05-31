@@ -6,9 +6,9 @@ const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
 console.log("Starting.....");
-const BITGREENBLOCKCHAIN = process.env.BITGREENBLOCKCHAIN;
-if (typeof BITGREENBLOCKCHAIN==='undefined'){
-    console.log("BITGREENBLOCKCHAIN variable is not set, please set it for launching the validator");
+const SUBSTRATECHAIN = process.env.SUBSTRATECHAIN;
+if (typeof SUBSTRATECHAIN==='undefined'){
+    console.log("SUBSTRATECHAIN variable is not set, please set it for launching the validator");
     process.exit();
 }
 const MNEMONIC = process.env.MNEMONIC;
@@ -45,7 +45,7 @@ mainloop();
 
 async function mainloop(){
   //connect BITGREEN CHAIN
-  const wsProvider = new WsProvider(BITGREENBLOCKCHAIN);
+  const wsProvider = new WsProvider(SUBSTRATECHAIN);
   const api = await ApiPromise.create({ provider: wsProvider });
   const keyring = new Keyring({ type: 'sr25519' });
   let keys=keyring.createFromUri(MNEMONIC);
