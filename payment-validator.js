@@ -47,6 +47,11 @@ if (typeof BLOCKSCONFIRMATION=='=undefined'){
     console.log("BLOCKSCONFIRMATION variable is not set, please set it for launching the validator");
     process.exit();
 }
+const MINVALIDATIONS = process.env.MINVALIDATIONS;
+if (typeof MINVALIDATIONS=='=undefined'){
+    console.log("MINVALIDATION variable is not set, please set it for launching the validator");
+    process.exit();
+}
 //console.log(BLOCKCHAIN);
 const client = new Client();
 // connect EVM blockchain
@@ -145,13 +150,34 @@ async function mainloop(){
             // get last block hash
             const { hash, parentHash } = await api.rpc.chain.getHeader();
             selleraddress=aiv.owner;
-            // store the payment data
+            // check for existing records
+            let upd=false;
             try {
-              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10)';
-              await client.query(queryText, [rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex()]);
+                const queryText="SELECT * from paymentsreceived where referenceid=$1";
+                rp=await client.query(queryText, [[rs.rows[0]['referenceid']]);
+                if(rp'rowCount']!=0){
+                    upd=true;
+                }
             } catch (e) {
                 throw e;
-            } 
+            }
+            if(upd==false){
+                // store the payment data
+                try {
+                  const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
+                  await client.query(queryText, [rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex()],MINVALIDATIONS);
+                } catch (e) {
+                    throw e;
+                } 
+            }else{
+               //update the validation counter
+               try {
+                  const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1";
+                  await client.query(queryText, [rs.rows[0]['referenceid']);
+                  } catch (e) {
+                    throw e;
+                } 
+            }
             */
             //validate orders on Substrate
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
