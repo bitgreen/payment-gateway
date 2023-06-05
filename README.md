@@ -5,14 +5,17 @@ The solution can enable additional stable coins and different networks with a mi
 The payment by credit card use [https://www.stripe.com](https://www.stripe.com) as card gateway.
 The user interface reflect the designs of Bitgreen, you can customised or use as example to integrate in your current UI.
 
-Requirements:
-Hardware:
+Requirements:  
+  
+Hardware:  
 - 1 server or virtual machine with 16 GB of ram and 10 GB disk for the operating system and the application.
-- 1 virtual machine for each validator (for security reasons), for testing you can use the same server.
+- 1 virtual machine for each validator (for security reasons), for testing you can use the same server.  
+
 Operating Sytem:  
 - Linux Debian or Ubuntu with shell/bash access.  
 - Other Linux distribution will work with minimum changes to the installation steps.  
-Software Packages:  
+  
+Software Packages:   
 - Postgresql Server.  
 - Nodejs > 20.x.  
 - git.    
@@ -35,122 +38,104 @@ git client https://github.com/bitgreen/payment-gateway.git
 cd /usr/src/payment-gateway
 npm install
 ```
-5) Create a database named payment-gateway:  
+5) Create a database named paymentgateway and the user with the same name:  
 ```bash
 su postgres
 psql
+create database paymentgateway;
+CREATE ROLE paymentgateway
+SUPERUSER 
+LOGIN 
+PASSWORD '_set_your_password_here';
+\q
 ```
-copy/paste the following commands in the psql command line:
+8) create the database schema
+```bash
+psql paymentgateway -f schema.sql
+exit
 ```
+9) Customise *.sh  
+- use you preferred text editor to edit the files with suffix .sh. Follows the in-line instruction to set all the required parameters.
 
+10) Configure an NGINX reverse proxy for https connection pointing to http://localhost:3000
+
+
+## Running the Payment Gateway:
+To run the main server
+```bash
+/usr/src/payment-gateway/payment-gateway.sh
 ```
-
-
-
-## Running the Payment Gateway Server
-
-The server module listen on port 3000 and can be executed settings certain environment variables as from the following example to configure the access to a postgresql server:  
+in a different shell:  
+```bash
+/usr/src/payment-gateway/payment-validator-xxxxxxxx.sh
 ```
-#!/bin/bash  
-export PGUSER='paymentgateway'  
-export PGPASSWORD='xxxxxxxxxxxxx'  
-export PGHOST='127.0.0.1'  
-export PGDATABASE='paymentgateway'   
-cd /usr/src/payment-gateway   
-node /usr/src/payment-gateway/payment-gateway.js   
-```
+repeat the process for each validator.
 
-the database contains one single table:  
+in a new shell:  
+```bash
+/usr/src/payment-gateway/payment-gateway-webhook-stripe.sh
 ```
-  Table "public.paymentrequests"
-    Column     |            Type             | Collation | Nullable |        Default        
----------------+-----------------------------+-----------+----------+-----------------------
- referenceid   | character varying(256)       |           | not null | 
- sender        | character varying(50)       |           | not null | 
- recipient     | character varying(50)       |           | not null | 
- amount        | numeric(36,18)              |           | not null | 
- created_on    | timestamp without time zone |           | not null | 
- originaddress | character varying(64)       |           | not null | ''::character varying
- token         | character varying(10)       |           | not null | ''::character varying
- chainid       | integer                     |           | not null | 1
-Indexes:
-    "paymentrequests_pkey" PRIMARY KEY, btree (referenceid)
+add to the crontab the following command to be executed every 2 minutes:
+```bash
+crontab -e
+# add the followin line:
+*/2 * * * * /usr/src/payment-gateway/payment-validator-delayed.js
+# and save
 ```
-that can be created with the following SQL statement:  
-
-```
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-SET default_tablespace = '';
-SET default_table_access_method = heap;
-CREATE TABLE public.paymentrequests (
-    referenceid character varying(256) NOT NULL,
-    sender character varying(50) NOT NULL,
-    recipient character varying(50) NOT NULL,
-    amount numeric(36,18) NOT NULL,
-    created_on timestamp without time zone NOT NULL,
-    originaddress character varying(64) DEFAULT ''::character varying NOT NULL,
-    token character varying(10) DEFAULT ''::character varying NOT NULL,
-    chainid integer DEFAULT 1 NOT NULL
-);
-ALTER TABLE public.paymentrequests OWNER TO postgres;
-ALTER TABLE ONLY public.paymentrequests ADD CONSTRAINT paymentrequests_pkey PRIMARY KEY (referenceid);
-GRANT ALL ON TABLE public.paymentrequests TO paymentgateway;
-
-CREATE TABLE public.paymentsreceived (
-    referenceid character varying(256) NOT NULL,
-    sender character varying(50) NOT NULL,
-    recipient character varying(50) NOT NULL,
-    amount numeric(36,18) NOT NULL,
-    fees numeric(36,18) NOT NULL,
-    created_on timestamp without time zone NOT NULL,
-    selleraddress character varying(64) DEFAULT ''::character varying NOT NULL,
-    token character varying(10) DEFAULT ''::character varying NOT NULL,
-    chainid integer DEFAULT 1 NOT NULL,
-    paymentid character varying(256) NOT NULL,
-    settled_on timestamp without time zone NOT NULL,
-    settled_amount numeric(36,18) NOT NULL,
-    settled_chainid integer DEFAULT 1 NOT NULL,
-    settled_paymentid character varying(256) NOT NULL
-);
+add to the crontab the following command to be executed every day or often as you wish):
+```bash
+crontab -e
+# add the followin line:
+15 0 * * * /usr/src/payment-gateway/payment-gateway-settlement.js
+# and save
 ```
 
+You should configure a domain name or a sub-domain to point to your server, for example: pay.yourdomain.com
+You can get a free TLS certificate from [https://certbot.eff.org/](https://certbot.eff.org/)
 You should configure an NGINX serve proxy to connect by https.
 
 ## Running the Validator Server  
 
 The validators server listen for payment on the blockchain and submit the approval to the Bitgreen Parachain.  
 For security, we should have >1 validator running from differnet machine and looking to different nodes for each network.  
-You can run the validator settings certain variables like in this example:  
+You can run the validator settings certain variables like in the example payment-validator-quicknode.sh:
+
 ```
 #!/bin/bash
-export BLOCKCHAIN="wss://smart-greatest-orb.ethereum-sepolia.discover.quiknode.pro/3ef1aecf950aa22a84b41f924493f721644ca05d/"
+# the endpoint supporting web socket protocol wss://, we use to listen to the blockhain events, replace with the correct
+# endpoint for the the blockchain involved
+export BLOCKCHAIN="wss://smart-greatest-orb.ethereum-sepolia.discover.quiknode.pro/_place_your_key_here/"
+# blockchain id, for etheruem is 1 for example, 11155111 is for Sepolia Testnet Ethereum
 export BLOCKCHAINCODE=11155111
-export BITGREENBLOCKCHAIN="wss://testnet.bitgreen.org"
+# the RPC endpoint of your substrate chain
+export SUBSTRATECHAIN="wss://testnet.bitgreen.org"
+# the address of the ERC20 token to validate
 export TOKENADDRESS="0xef632af93FF9cEDc7c40069861b67c13b31aeb8E"
+# the wallet that should received the payment of the the token above
 export WALLETADDRESS="0x78A4C8624Ba26dD5fEC90a8Dc9B75B4E3D630035";
-export MNEMONIC="whip leave often price skate embody unlock cave thumb ancient letter car"
+# the mnemonic seed of the validator, for example
+export MNEMONIC="house leave often price skate embody unlock cave thumb ancient letter amount"
+# number of confirmation blocks before to consider valid the payment
+export BLOCKSCONFIRMATION=1
+# the minimum number of validations required to confirm the payment, it should be as configured in the substrate chain
+export MINVALIDATIONS=2
+# the ABI for the ERC20, you can change the path eventually
 export ABI="/usr/src/payment-gateway/ABI-USDT.json"
-export PGUSER='paymentgateway'
-export PGPASSWORD='xxxxxxxx'
+# the user enabled to read/write te database paymentgateway
+export PGUSER='_place_here_your_username'
+# the user password
+export PGPASSWORD='_place_here_the_user_password'
+# the hostname or ip address where the postgres database is reachable, 127.0.0.1 works for postgres in the same machine
 export PGHOST='127.0.0.1'
+# the database name, you can keep the same or change it
 export PGDATABASE='paymentgateway'
-node /usr/src/payment-gateway/payment-validator.js
 ```
 The validator requires access to the database to find the orderid for the confirmation. The connection to the database should be configured over VPN tunnel for security reasons.  
 
-## Integration in the Market Place
+## Payment Gateway Use
 The gateway can be called redirecting to the following url:
 ```
-https://pay.bitgreen.org/?p=USDT&a=100&r=123456&d=test_payment&rp=paid.html&rnp=notpaid.html&o=5HTjwDQet7MagqP9F5ApmjBLUnRa96D91PBiAToj41xExXox
+https://yourdomain.com/?p=USDT&a=100&r=123456&d=test_payment&rp=paid.html&rnp=notpaid.html&o=5HTjwDQet7MagqP9F5ApmjBLUnRa96D91PBiAToj41xExXox
 ```
 where the parameters are the following:  
 - p = currency, actually supported USDT and USDC. Payment by card are done in USD. 
