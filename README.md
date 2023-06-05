@@ -90,35 +90,52 @@ crontab -e
 # and save
 ```
 
-
+You should configure a domain name or a sub-domain to point to your server, for example: pay.yourdomain.com
+You can get a free TLS certificate from [https://certbot.eff.org/](https://certbot.eff.org/)
 You should configure an NGINX serve proxy to connect by https.
 
 ## Running the Validator Server  
 
 The validators server listen for payment on the blockchain and submit the approval to the Bitgreen Parachain.  
 For security, we should have >1 validator running from differnet machine and looking to different nodes for each network.  
-You can run the validator settings certain variables like in this example:  
+You can run the validator settings certain variables like in the example payment-validator-quicknode.sh:
+
 ```
 #!/bin/bash
-export BLOCKCHAIN="wss://smart-greatest-orb.ethereum-sepolia.discover.quiknode.pro/3ef1aecf950aa22a84b41f924493f721644ca05d/"
+# the endpoint supporting web socket protocol wss://, we use to listen to the blockhain events, replace with the correct
+# endpoint for the the blockchain involved
+export BLOCKCHAIN="wss://smart-greatest-orb.ethereum-sepolia.discover.quiknode.pro/_place_your_key_here/"
+# blockchain id, for etheruem is 1 for example, 11155111 is for Sepolia Testnet Ethereum
 export BLOCKCHAINCODE=11155111
-export BITGREENBLOCKCHAIN="wss://testnet.bitgreen.org"
+# the RPC endpoint of your substrate chain
+export SUBSTRATECHAIN="wss://testnet.bitgreen.org"
+# the address of the ERC20 token to validate
 export TOKENADDRESS="0xef632af93FF9cEDc7c40069861b67c13b31aeb8E"
+# the wallet that should received the payment of the the token above
 export WALLETADDRESS="0x78A4C8624Ba26dD5fEC90a8Dc9B75B4E3D630035";
-export MNEMONIC="whip leave often price skate embody unlock cave thumb ancient letter car"
+# the mnemonic seed of the validator, for example
+export MNEMONIC="house leave often price skate embody unlock cave thumb ancient letter amount"
+# number of confirmation blocks before to consider valid the payment
+export BLOCKSCONFIRMATION=1
+# the minimum number of validations required to confirm the payment, it should be as configured in the substrate chain
+export MINVALIDATIONS=2
+# the ABI for the ERC20, you can change the path eventually
 export ABI="/usr/src/payment-gateway/ABI-USDT.json"
-export PGUSER='paymentgateway'
-export PGPASSWORD='xxxxxxxx'
+# the user enabled to read/write te database paymentgateway
+export PGUSER='_place_here_your_username'
+# the user password
+export PGPASSWORD='_place_here_the_user_password'
+# the hostname or ip address where the postgres database is reachable, 127.0.0.1 works for postgres in the same machine
 export PGHOST='127.0.0.1'
+# the database name, you can keep the same or change it
 export PGDATABASE='paymentgateway'
-node /usr/src/payment-gateway/payment-validator.js
 ```
 The validator requires access to the database to find the orderid for the confirmation. The connection to the database should be configured over VPN tunnel for security reasons.  
 
-## Integration in the Market Place
+## Payment Gateway Use
 The gateway can be called redirecting to the following url:
 ```
-https://pay.bitgreen.org/?p=USDT&a=100&r=123456&d=test_payment&rp=paid.html&rnp=notpaid.html&o=5HTjwDQet7MagqP9F5ApmjBLUnRa96D91PBiAToj41xExXox
+https://yourdomain.com/?p=USDT&a=100&r=123456&d=test_payment&rp=paid.html&rnp=notpaid.html&o=5HTjwDQet7MagqP9F5ApmjBLUnRa96D91PBiAToj41xExXox
 ```
 where the parameters are the following:  
 - p = currency, actually supported USDT and USDC. Payment by card are done in USD. 
