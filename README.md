@@ -1,5 +1,5 @@
 # Payment Gateway
-A payment gateway to buy assets on a Substrate blockchain paying by USDT and credit/debit cards. 
+A payment gateway to buy assets on a Substrate blockchain paying by ERC20 tokens like USDT, and credit/debit cards. 
 It's currently configured to accept payment by USDT on Polygon Network and Ethereum Network.
 The solution can enable additional stable coins and different networks with a minor update of the server module adding new contract addresses and chain id.  
 The payment by credit card use [https://www.stripe.com](https://www.stripe.com) as card gateway.
@@ -9,19 +9,44 @@ Requirements:
 Hardware:
 - 1 server or virtual machine with 16 GB of ram and 10 GB disk for the operating system and the application.
 - 1 virtual machine for each validator (for security reasons), for testing you can use the same server.
-Operating Sytem:
-- Linux Debian or Ubuntu. 
-- Other Linux distribution will work with minimum changes to the installation steps.
-Software Packages:
-- Postgresql Server
-- Nodejs > 20.x
-- git 
+Operating Sytem:  
+- Linux Debian or Ubuntu with shell/bash access.  
+- Other Linux distribution will work with minimum changes to the installation steps.  
+Software Packages:  
+- Postgresql Server.  
+- Nodejs > 20.x.  
+- git.    
 
-## Installation
-You should install the the libraries with:  
+## Installation. 
+The following instructions have been tested for Linux Debian 11.  
+1) Install the Git and Postgres:  
+```bash
+apt-get -y install git postgresql-all
 ```
+2) Install nodejs version > 20.x following the instruction at the official web site [https://nodejs.org](https://nodejs.org).  
+
+3) clone this project with:  
+```bash
+cd /usr/src/
+git client https://github.com/bitgreen/payment-gateway.git
+```
+4) You should install the the dependencies with:  
+```bash
+cd /usr/src/payment-gateway
 npm install
 ```
+5) Create a database named payment-gateway:  
+```bash
+su postgres
+psql
+```
+copy/paste the following commands in the psql command line:
+```
+
+```
+
+
+
 ## Running the Payment Gateway Server
 
 The server module listen on port 3000 and can be executed settings certain environment variables as from the following example to configure the access to a postgresql server:  
