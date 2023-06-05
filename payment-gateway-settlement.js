@@ -112,9 +112,9 @@ async function mainloop(){
     try {
         let queryText='';
         if(TESTNETENABLED=="yes")
-          queryText="SELECT * from paymentsreceived where settled_on is NULL order by selleraddress  desc";
+          queryText="SELECT * from paymentsreceived where settled_on is NULL and nrvalidation>=minvalidation  order by selleraddress  desc";
         else
-          queryText="SELECT * from paymentsreceived where settled_on is NULL and (chainid==0 or chainid==1 or chainid=137) order by selleraddress  desc";
+          queryText="SELECT * from paymentsreceived where settled_on is NULL and (chainid==0 or chainid==1 or chainid=137)  and nrvalidation>=minvalidation order by selleraddress  desc";
         rs=await client.query(queryText,[]);
         if(rs['rowCount']==0){
             console.log("No payments to settle");

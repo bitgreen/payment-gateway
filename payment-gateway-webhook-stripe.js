@@ -1,6 +1,5 @@
 // This a webhook server that received events from Stripe and vaidate the payments.
 // Uses Express to receive webhooks
-
 const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
@@ -226,7 +225,7 @@ async function store_orders_paid(orderid,api,client,token,stripeid){
         selleraddress=aiv.owner;
         // store the payment data
         try {
-              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10)';
+              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvaliation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,1)';
               await client.query(queryText, [v.orderId,"","",amount,fees,selleraddress,token,0,stripeid,hash.toHex()]);
         } catch (e) {
                 throw e;
