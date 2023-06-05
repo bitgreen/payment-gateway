@@ -1,9 +1,21 @@
 # Payment Gateway
-This the payment gateway of Bitgreen.
-Currently we accept payment by USDT on Polygon Network and Ethereum Network.  
+A payment gateway to buy assets on a Substrate blockchain paying by USDT and credit/debit cards. 
+It's currently configured to accept payment by USDT on Polygon Network and Ethereum Network.
 The solution can enable additional stable coins and different networks with a minor update of the server module adding new contract addresses and chain id.  
-The payment by credit card is currently under development.  
-The user interface reflect the designs approved from the management.  
+The payment by credit card use [https://www.stripe.com](https://www.stripe.com) as card gateway.
+The user interface reflect the designs of Bitgreen, you can customised or use as example to integrate in your current UI.
+
+Requirements:
+Hardware:
+- 1 server or virtual machine with 16 GB of ram and 10 GB disk for the operating system and the application.
+- 1 virtual machine for each validator (for security reasons), for testing you can use the same server.
+Operating Sytem:
+- Linux Debian or Ubuntu. 
+- Other Linux distribution will work with minimum changes to the installation steps.
+Software Packages:
+- Postgresql Server
+- Nodejs > 20.x
+- git 
 
 ## Installation
 You should install the the libraries with:  
