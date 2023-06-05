@@ -1,6 +1,6 @@
 # Payment Gateway
 A payment gateway to buy assets on a Substrate blockchain paying by ERC20 tokens like USDT, and credit/debit cards. 
-It's currently configured to accept payment by USDT on Polygon Network and Ethereum Network.
+It's currently configured to accept payment by USDT on Polygon Ethereum Network.
 The solution can enable additional stable coins and different networks with a minor update of the server module adding new contract addresses and chain id.  
 The payment by credit card use [https://www.stripe.com](https://www.stripe.com) as card gateway.  
 The user interface reflect the designs of Bitgreen, you can customised or use as example to integrate in your current UI.  
