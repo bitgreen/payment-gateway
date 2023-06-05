@@ -5,14 +5,17 @@ The solution can enable additional stable coins and different networks with a mi
 The payment by credit card use [https://www.stripe.com](https://www.stripe.com) as card gateway.
 The user interface reflect the designs of Bitgreen, you can customised or use as example to integrate in your current UI.
 
-Requirements:
-Hardware:
+Requirements:  
+  
+Hardware:  
 - 1 server or virtual machine with 16 GB of ram and 10 GB disk for the operating system and the application.
-- 1 virtual machine for each validator (for security reasons), for testing you can use the same server.
+- 1 virtual machine for each validator (for security reasons), for testing you can use the same server.  
+
 Operating Sytem:  
 - Linux Debian or Ubuntu with shell/bash access.  
 - Other Linux distribution will work with minimum changes to the installation steps.  
-Software Packages:  
+  
+Software Packages:   
 - Postgresql Server.  
 - Nodejs > 20.x.  
 - git.    
@@ -35,14 +38,21 @@ git client https://github.com/bitgreen/payment-gateway.git
 cd /usr/src/payment-gateway
 npm install
 ```
-5) Create a database named payment-gateway:  
+5) Create a database named paymentgateway and the user with the same name:  
 ```bash
 su postgres
 psql
+create database paymentgateway;
+CREATE ROLE paymentgateway
+SUPERUSER 
+LOGIN 
+PASSWORD '_set_your_password_here';
+\q
 ```
-copy/paste the following commands in the psql command line:
-```
-
+8) create the database schema
+```bash
+psql paymentgateway -f schema.sql
+exit
 ```
 
 
