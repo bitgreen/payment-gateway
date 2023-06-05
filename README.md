@@ -54,84 +54,42 @@ PASSWORD '_set_your_password_here';
 psql paymentgateway -f schema.sql
 exit
 ```
+9) Customise *.sh  
+- use you preferred text editor to edit the files with suffix .sh. Follows the in-line instruction to set all the required parameters.
+
+10) Configure an NGINX reverse proxy for https connection pointing to http://localhost:3000
 
 
-
-## Running the Payment Gateway Server
-
-The server module listen on port 3000 and can be executed settings certain environment variables as from the following example to configure the access to a postgresql server:  
+## Running the Payment Gateway:
+To run the main server
+```bash
+/usr/src/payment-gateway/payment-gateway.sh
 ```
-#!/bin/bash  
-export PGUSER='paymentgateway'  
-export PGPASSWORD='xxxxxxxxxxxxx'  
-export PGHOST='127.0.0.1'  
-export PGDATABASE='paymentgateway'   
-cd /usr/src/payment-gateway   
-node /usr/src/payment-gateway/payment-gateway.js   
+in a different shell:  
+```bash
+/usr/src/payment-gateway/payment-validator-xxxxxxxx.sh
+```
+repeat the process for each validator.
+
+in a new shell:  
+```bash
+/usr/src/payment-gateway/payment-gateway-webhook-stripe.sh
+```
+add to the crontab the following command to be executed every 2 minutes:
+```bash
+crontab -e
+# add the followin line:
+*/2 * * * * /usr/src/payment-gateway/payment-validator-delayed.js
+# and save
+```
+add to the crontab the following command to be executed every day or often as you wish):
+```bash
+crontab -e
+# add the followin line:
+15 0 * * * /usr/src/payment-gateway/payment-gateway-settlement.js
+# and save
 ```
 
-the database contains one single table:  
-```
-  Table "public.paymentrequests"
-    Column     |            Type             | Collation | Nullable |        Default        
----------------+-----------------------------+-----------+----------+-----------------------
- referenceid   | character varying(256)       |           | not null | 
- sender        | character varying(50)       |           | not null | 
- recipient     | character varying(50)       |           | not null | 
- amount        | numeric(36,18)              |           | not null | 
- created_on    | timestamp without time zone |           | not null | 
- originaddress | character varying(64)       |           | not null | ''::character varying
- token         | character varying(10)       |           | not null | ''::character varying
- chainid       | integer                     |           | not null | 1
-Indexes:
-    "paymentrequests_pkey" PRIMARY KEY, btree (referenceid)
-```
-that can be created with the following SQL statement:  
-
-```
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-SET default_tablespace = '';
-SET default_table_access_method = heap;
-CREATE TABLE public.paymentrequests (
-    referenceid character varying(256) NOT NULL,
-    sender character varying(50) NOT NULL,
-    recipient character varying(50) NOT NULL,
-    amount numeric(36,18) NOT NULL,
-    created_on timestamp without time zone NOT NULL,
-    originaddress character varying(64) DEFAULT ''::character varying NOT NULL,
-    token character varying(10) DEFAULT ''::character varying NOT NULL,
-    chainid integer DEFAULT 1 NOT NULL
-);
-ALTER TABLE public.paymentrequests OWNER TO postgres;
-ALTER TABLE ONLY public.paymentrequests ADD CONSTRAINT paymentrequests_pkey PRIMARY KEY (referenceid);
-GRANT ALL ON TABLE public.paymentrequests TO paymentgateway;
-
-CREATE TABLE public.paymentsreceived (
-    referenceid character varying(256) NOT NULL,
-    sender character varying(50) NOT NULL,
-    recipient character varying(50) NOT NULL,
-    amount numeric(36,18) NOT NULL,
-    fees numeric(36,18) NOT NULL,
-    created_on timestamp without time zone NOT NULL,
-    selleraddress character varying(64) DEFAULT ''::character varying NOT NULL,
-    token character varying(10) DEFAULT ''::character varying NOT NULL,
-    chainid integer DEFAULT 1 NOT NULL,
-    paymentid character varying(256) NOT NULL,
-    settled_on timestamp without time zone NOT NULL,
-    settled_amount numeric(36,18) NOT NULL,
-    settled_chainid integer DEFAULT 1 NOT NULL,
-    settled_paymentid character varying(256) NOT NULL
-);
-```
 
 You should configure an NGINX serve proxy to connect by https.
 
