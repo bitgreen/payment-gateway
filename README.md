@@ -6,8 +6,18 @@ The payment by credit card use [https://www.stripe.com](https://www.stripe.com) 
 The user interface reflect the designs of Bitgreen, you can customised or use as example to integrate in your current UI.  
 
 Here how it works:  
+  
+## Payment Setup Workflow   
 <p align="center">
   <img src="./img/R_Payment_Setup.png" width="800">
+</p>
+## Card Payment Workflow  
+<p align="center">
+  <img src="./img/R_Card_Payment.png" width="800">
+</p>
+## Crypto Payment Workflow  
+<p align="center">
+  <img src="./img/R_Crypto_Payment.png" width="800">
 </p>
 
 
