@@ -10,11 +10,13 @@ Here how it works:
 ## Payment Setup Workflow   
 <p align="center">
   <img src="./img/R_Payment_Setup.png" width="800">
-</p>
+</p>  
+  
 ## Card Payment Workflow  
 <p align="center">
   <img src="./img/R_Card_Payment.png" width="800">
-</p>
+</p>  
+  
 ## Crypto Payment Workflow  
 <p align="center">
   <img src="./img/R_Crypto_Payment.png" width="800">
