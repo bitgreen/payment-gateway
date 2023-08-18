@@ -54,7 +54,7 @@ async function mainloop(){
   console.log("Validator Address: ",keys2.address);
   const client = new Client();
   // connecting to database
-  await client.connect();
+  //await client.connect();
   // Match the raw body to content type application/json
   app.post('/webhook', express.raw({type: 'application/json'}), async function (request, response) {
     //const event = request.body;
@@ -74,6 +74,7 @@ async function mainloop(){
         // just additional check with 0 costs to increase the security
         const eventv = await stripe.events.retrieve(event.id);
         const pi = eventv.data.object;      
+        await client.connect();
         // search for the matching payment request
         let rs;
         try{
@@ -87,18 +88,21 @@ async function mainloop(){
         if(typeof rs.rows[0]==='undefined'){
             console.log("ERROR: the payment id has not been found:",pi.id);
             response.json({received: true});
+            await client.end();
             return;
         }
         // check for currency =usd
          if(pi.currency!='usd'){
              console.log("ERROR: the currency received is wrong, possible hacking attempt");
              response.json({received: true});
+             await client.end();
              return;
          }                   
         // verify amount
         if((rs.rows[0]['amount']*100)!=pi.amount_received){
             console.log("ERROR: the payment amount does not match the order (1): ",pi.id,rs.rows[0]['amount']*100,pi.amount_received);
             response.json({received: true});
+            await client.end();
             return;
         }
         // check the amount for matching on chain
@@ -106,6 +110,7 @@ async function mainloop(){
          if((totorders*100)!=pi.amount_received){
             console.log("ERROR: the payment amount does not match the orders on chain (2): ",totorders*100,pi.id,rs.rows[0]['amount'],pi.amount_received);
             response.json({received: true});
+            await client.end();
             return;
         }
         // store the payment received
@@ -113,7 +118,8 @@ async function mainloop(){
          
         // validate the payment on bitgreen blockchain
         await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api);
-        
+        //close db connection
+        await client.end();        
         // update the paymentrequest (striperequest table accordingly)
         // TODO
         break;
@@ -225,7 +231,7 @@ async function store_orders_paid(orderid,api,client,token,stripeid){
         selleraddress=aiv.owner;
         // store the payment data
         try {
-              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvaliation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,1)';
+              const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,1)';
               await client.query(queryText, [v.orderId,"","",amount,fees,selleraddress,token,0,stripeid,hash.toHex()]);
         } catch (e) {
                 throw e;
