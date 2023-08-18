@@ -73,6 +73,7 @@ async function mainloop(){
         // retrieve the event from stripe for security (someone may had submitted a fake one with the correct stripe signature.
         // just additional check with 0 costs to increase the security
         const eventv = await stripe.events.retrieve(event.id);
+        //TODO: check "livemode" should be true (no we accept from sandbox)
         const pi = eventv.data.object;      
         await client.connect();
         // search for the matching payment request
@@ -117,7 +118,7 @@ async function mainloop(){
         await store_orders_paid(rs.rows[0]['referenceid'],api,client,pi.currency,rs.rows[0]['stripeid']);
          
         // validate the payment on bitgreen blockchain
-        await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api);
+        await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api,event);
         //close db connection
         await client.end();        
         // update the paymentrequest (striperequest table accordingly)
@@ -137,7 +138,7 @@ async function mainloop(){
   app.listen(4242, () => console.log('Webhook listening  on port 4242 '));
 }
 // function to submit the transaction to the blockchain
-async function validate_payment(orderid,blockchainid,tx,keys,keys2,api){
+async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
     let ao=[];
     if(orderid.search(",")==-1)
         ao.push(orderid);
@@ -151,11 +152,15 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api){
 	// Sign and send the transaction using our account with nonce to consider the queue
     	const hash = await validate.signAndSend(keys,{ nonce: -1 });
 	console.log("Validation submitted tx: ",hash.toHex());
-        console.log("ao[x]",ao[x],blockchainid,tx)	
-	 const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
-         // Sign and send the transaction using our account
-         const hash2 = await validate.signAndSend(keys2,{ nonce: -1 });
-         console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
+	// query back stripe for the same transaction and make a second confirmation TODO: enable it
+        //const eventv = await stripe.events.retrieve(event.id);
+        //if(isObjectEqual(event,eventv){
+            console.log("ao[x]",ao[x],blockchainid,tx)	
+            const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+            // Sign and send the transaction using our account
+            const hash2 = await validate.signAndSend(keys2,{ nonce: -1 });
+            console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
+        //}
     }
 }
 
@@ -238,4 +243,30 @@ async function store_orders_paid(orderid,api,client,token,stripeid){
         } 
     }
     return(tot);
+}
+//function to evaluate if 2 objects are equal
+function isObjectEqual(object1, object2) {
+  const keys1 = Object.keys(object1);
+  const keys2 = Object.keys(object2);
+
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
+
+  for (const key of keys1) {
+    const val1 = object1[key];
+    const val2 = object2[key];
+    const areObjects = isObject(val1) && isObject(val2);
+    if (
+      areObjects && !deepEqual(val1, val2) ||
+      !areObjects && val1 !== val2
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+function isObject(object) {
+  return object != null && typeof object === 'object';
 }
