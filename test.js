@@ -5,24 +5,25 @@ const {Keyring} = require('@polkadot/keyring');
 const {BN} =require ('bn.js');
 
 
+const SUBSTRATE = process.env.SUBSTRATE;
+if (typeof SUBSTRATE=='=undefined'){
+    console.log("SUBSTRATE variable is not set, please set it for launching the validator");
+    process.exit();
+}
+
 mainloop();
 // main body of the unit tests
 async function mainloop(){
     console.log("Connecting to database 'test' with username 'test' and password 'testpwd'...");
-    // create client
-    const client = new Client({
-       user: 'test',
-       host: '127.0.0.1',
-       database: 'test',
-       password: 'testpwd',
-     });
+    // create client getting connection data from env variables
+    const client = new Client();
      //connect
     //await client.connect();
     console.log("Connection to database completed...");
     // connect to testnet
     // connect to the substrate Node:
-    console.log("Connecting to the testnet.bitgreen.org...");
-    const wsProvider = new WsProvider("wss://testnet.bitgreen.org");
+    console.log("Connecting to the "+SUBSTRATE+"...");
+    const wsProvider = new WsProvider(SUBSTRATE);
     const api = await ApiPromise.create({ provider: wsProvider });
     
     // create key ring from "pear art cup mirror skate state engine repair state crouch reopen main"
@@ -84,12 +85,12 @@ async function mainloop(){
     */
     // create a cart of orders in an object
     let cart=[
-      {projectId : 35,assetId : 38,sellOrderId:54,qnt: 2},
-      {projectId : 36,assetId : 37,sellOrderId:53,qnt: 1},
-      {projectId : 37,assetId : 38,sellOrderId: 55,qnt: 3},
+      {projectId : 35,assetId : 38,sellOrderId: 54,qnt: 2},
+      {projectId : 36,assetId : 37,sellOrderId: 53,qnt: 1},
+      {projectId : 37,assetId : 36,sellOrderId: 55,qnt: 3},
       {projectId : 38,assetId : 35,sellOrderId: 56,qnt: 5},
       {projectId : 39,assetId : 34,sellOrderId: 57,qnt: 4}
-    ]
+    ];
     //submit the purchase order on dex
     const nonce = await api.rpc.system.accountNextIndex(keypair.address);
     //let hash=await api.tx.dex.createBuyOrder(54,38,1,10).signAndSend(keypair,{ nonce });
@@ -102,7 +103,7 @@ async function mainloop(){
     console.log(txs);
     // construct the batch and send the transactions
     const r = await api.tx.utility.batch(txs)
-    .signAndSend(keypair, { nonce }, ({ status, events = [], dispatchError }) => {
+    .signAndSend(keypair, { nonce }, ({ status, events = [], dispatchError }) =>  {
       if(dispatchError) {
           // for module errors, we have the section indexed, lookup
           const decoded = api.registry.findMetaError(dispatchError.asModule)
@@ -152,7 +153,6 @@ async function mainloop(){
         return(answer);
     });
     
-    console.log("Result:",r);
     //await api.disconnect();
     //await client.end();
     return;   
@@ -160,7 +160,11 @@ async function mainloop(){
     // book a carbon credit purchase on dex
     // call the api payment
     // make a payment
-    
-    
-      
 }
+
+// function to setup the  payment request 
+async function setup_payments(){
+
+
+}
+
