@@ -4,6 +4,7 @@ const { ApiPromise, WsProvider } = require('@polkadot/api');
 const {Keyring} = require('@polkadot/keyring');
 const {BN} =require ('bn.js');
 
+const fetch = require('node-fetch@2');
 
 const SUBSTRATE = process.env.SUBSTRATE;
 if (typeof SUBSTRATE=='=undefined'){
@@ -100,10 +101,10 @@ async function mainloop(){
     for (let i=0;i<cart.length;i++){
       txs.push(api.tx.dex.createBuyOrder(cart[i].sellOrderId,cart[i].assetId,cart[i].qnt,10));
     }
-    console.log(txs);
+    console.log("Submitting Tx...");
     // construct the batch and send the transactions
     const r = await api.tx.utility.batch(txs)
-    .signAndSend(keypair, { nonce }, ({ status, events = [], dispatchError }) =>  {
+    .signAndSend(keypair, { nonce }, ({ status, events = [], dispatchError,txHash }) =>  {
       if(dispatchError) {
           // for module errors, we have the section indexed, lookup
           const decoded = api.registry.findMetaError(dispatchError.asModule)
@@ -139,8 +140,20 @@ async function mainloop(){
                 block_hash: status.asInBlock.toHex()
             }
         };
-        console.log(answer);
+        console.log("In block:",answer);
         return(answer);
+      }
+      // get events
+      if (status.isFinalized) {
+        console.log(`Transaction included at blockHash ${status.asFinalized}`);
+        console.log(`Transaction hash ${txHash.toHex()}`);
+        // Loop through Vec<EventRecord> to display all events
+        events.forEach(({ phase, event: { data, method, section } }) => {
+            console.log(`\t' ${phase}: ${section}.${method}:: ${data}`);
+            //make payment for each order created
+            if(section=='dex' && method=='BuyOrderCreated')
+              make_payment(`${data}`);                        
+        });
       }
     }).catch(err => {
         // returns errors in other case
@@ -157,14 +170,35 @@ async function mainloop(){
     //await client.end();
     return;   
        
-    // book a carbon credit purchase on dex
-    // call the api payment
-    // make a payment
 }
 
 // function to setup the  payment request 
-async function setup_payments(){
-
-
+async function make_payment(data){
+  let d=JSON.parse(data);
+  /* data received:
+  BuyOrderCreated {
+    order_id: OrderId,
+    units: AssetBalanceOf<T>,
+    project_id: ProjectIdOf<T>,
+    group_id: GroupIdOf<T>,
+    price_per_unit: CurrencyBalanceOf<T>,
+    fees_paid: CurrencyBalanceOf<T>,
+    total_amount: CurrencyBalanceOf<T>,
+    seller: T::AccountId,
+    buyer: T::AccountId,
+  },
+  */
+  console.log("make_payment - data",d);
+  // call api for payment request
+  let url='http://localhost:3000/paymentrequest?';
+  url=url+'token=USDT';
+  url=url+'&referenceid='+d[0];
+  url=url+'&sender='+d[9];
+  const response = await fetch(url);
+  const answer = await response.json();
+  console.log(answer);
+    
+  // make payment
+  return;
 }
 
