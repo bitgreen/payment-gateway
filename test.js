@@ -4,7 +4,7 @@ const { ApiPromise, WsProvider } = require('@polkadot/api');
 const {Keyring} = require('@polkadot/keyring');
 const {BN} =require ('bn.js');
 
-const fetch = require('node-fetch@2');
+const fetch = require('node-fetch');
 
 const SUBSTRATE = process.env.SUBSTRATE;
 if (typeof SUBSTRATE=='=undefined'){
@@ -178,8 +178,9 @@ async function make_payment(data){
   /* data received:
   BuyOrderCreated {
     order_id: OrderId,
-    units: AssetBalanceOf<T>,
     project_id: ProjectIdOf<T>,
+    units: AssetBalanceOf<T>,
+    assetid: Assetid
     group_id: GroupIdOf<T>,
     price_per_unit: CurrencyBalanceOf<T>,
     fees_paid: CurrencyBalanceOf<T>,
@@ -194,11 +195,16 @@ async function make_payment(data){
   url=url+'token=USDT';
   url=url+'&referenceid='+d[0];
   url=url+'&sender='+d[9];
+  url=url+'&recipient=0x78A4C8624Ba26dD5fEC90a8Dc9B75B4E3D630035';
+  url=url+'&originaddress='+d[9];
+  url=url+'&chainid=11155111';
+  url=url+'&amount='+d[7];
+  console.log("url:",url);
   const response = await fetch(url);
-  const answer = await response.json();
+  const answer = await response.text();
   console.log(answer);
-    
-  // make payment
+  // make payment from USDT contract
+  
   return;
 }
 
