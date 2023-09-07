@@ -3,14 +3,34 @@ const { Client } = require('pg');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const {Keyring} = require('@polkadot/keyring');
 const {BN} =require ('bn.js');
-
+const Web3 = require('web3');
+const { ETH_DATA_FORMAT, DEFAULT_RETURN_FORMAT } = require("web3");
 const fetch = require('node-fetch');
-
+const fs = require('fs');
 const SUBSTRATE = process.env.SUBSTRATE;
 if (typeof SUBSTRATE=='=undefined'){
-    console.log("SUBSTRATE variable is not set, please set it for launching the validator");
+    console.log("ERROR: SUBSTRATE variable is not set");
     process.exit();
 }
+const EVMPRIVATEKEY = process.env.EVMPRIVATEKEY;
+if (typeof EVMPRIVATEKEY=='=undefined'){
+    console.log("ERROR: EVMPRIVATEKEY variable is not set");
+    process.exit();
+}
+const ETHNODE = process.env.ETHNODE;
+if (typeof ETHNODE=='=undefined'){
+    console.log("ERROR: ETHNODE variable is not set");
+    process.exit();
+}
+const web3 = new Web3(ETHNODE);
+const network='sepolia';
+const jsonFile = "test.abi.json";
+const parsed=JSON.parse(fs.readFileSync(jsonFile));
+const abi = parsed;
+//console.log(abi);
+//return;
+const tokenAddress = "0xef632af93FF9cEDc7c40069861b67c13b31aeb8E";
+let nonces=1;
 
 mainloop();
 // main body of the unit tests
@@ -26,7 +46,8 @@ async function mainloop(){
     console.log("Connecting to the "+SUBSTRATE+"...");
     const wsProvider = new WsProvider(SUBSTRATE);
     const api = await ApiPromise.create({ provider: wsProvider });
-    
+    // update nonces
+    nonces=await web3.eth.getTransactionCount('0xa188842de5c573aa3ddd924676c2d079c5a75B9c');
     // create key ring from "pear art cup mirror skate state engine repair state crouch reopen main"
     // account: 5F6t8QtyXbrYf3kbeYE6TgjQSkjZ2CXK9MqEYmark8QL1jWW
     // for testing on testnet
@@ -92,6 +113,9 @@ async function mainloop(){
       {projectId : 38,assetId : 35,sellOrderId: 56,qnt: 5},
       {projectId : 39,assetId : 34,sellOrderId: 57,qnt: 4}
     ];
+//    cart=[
+//      {projectId : 35,assetId : 38,sellOrderId: 54,qnt: 2}
+//    ];
     //submit the purchase order on dex
     const nonce = await api.rpc.system.accountNextIndex(keypair.address);
     //let hash=await api.tx.dex.createBuyOrder(54,38,1,10).signAndSend(keypair,{ nonce });
@@ -194,7 +218,7 @@ async function make_payment(data){
   let url='http://localhost:3000/paymentrequest?';
   url=url+'token=USDT';
   url=url+'&referenceid='+d[0];
-  url=url+'&sender='+d[9];
+  url=url+'&sender=0xa188842de5c573aa3ddd924676c2d079c5a75B9c';
   url=url+'&recipient=0x78A4C8624Ba26dD5fEC90a8Dc9B75B4E3D630035';
   url=url+'&originaddress='+d[9];
   url=url+'&chainid=11155111';
@@ -203,8 +227,51 @@ async function make_payment(data){
   const response = await fetch(url);
   const answer = await response.text();
   console.log(answer);
-  // make payment from USDT contract
+  const toAddress='0x78A4C8624Ba26dD5fEC90a8Dc9B75B4E3D630035';
+  // create signer from private key
+  let signer=web3.eth.accounts.privateKeyToAccount(EVMPRIVATEKEY);
+  web3.eth.accounts.wallet.add(signer);
+  // create contracrt object
+  //const contract = new web3.eth.Contract(abi, tokenAddress, { from: signer.address } )
+  // compute amount
   
+  let a=Number(d[7])*1000;
+  console.log("a",a);
+  let amount = web3.utils.toHex(a.toString());
+  console.log("amount",amount);
+  /*  
+  // Creating the transaction object
+  const tx = {
+         from: signer.address,
+         to: toAddress,
+         value: "0x0",
+         data: contract.methods.transfer(toAddress, amount).encodeABI(),
+         gas: web3.utils.toHex(5000000),
+         nonce: web3.eth.getTransactionCount(signer.address),
+         maxPriorityFeePerGas: web3.utils.toHex(web3.utils.toWei('2', 'gwei')),
+         chainId: 11155111,
+         type: 0x2
+  };
+  signedTx = await web3.eth.accounts.signTransaction(tx, signer.privateKey)
+  console.log("Raw transaction data: " + signedTx.rawTransaction)
+ 
+  // Sending the transaction to the network
+  const receipt = await web3.eth
+    .sendSignedTransaction(signedTx.rawTransaction)
+    .once("transactionHash", (txhash) => {
+        console.log(`Mining transaction ...`);
+        console.log(`https://${network}.etherscan.io/tx/${txhash}`);
+     });
+  // The transaction is now on chain!
+  console.log(`Mined in block ${receipt.blockNumber}`);
+  */
+  const contract = new web3.eth.Contract(abi, tokenAddress, { from: signer.address } );
+  nonces=nonces+1;
+  contract.methods.transfer(toAddress, amount).send({
+        from: signer.address,
+        gas: 5000000,
+        nonce:nonces
+    }).then(console.log).catch(console.error);
   return;
 }
 
