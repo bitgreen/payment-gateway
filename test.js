@@ -113,9 +113,9 @@ async function mainloop(){
       {projectId : 38,assetId : 35,sellOrderId: 56,qnt: 5},
       {projectId : 39,assetId : 34,sellOrderId: 57,qnt: 4}
     ];
-//    cart=[
-//      {projectId : 35,assetId : 38,sellOrderId: 54,qnt: 2}
-//    ];
+/*    cart=[
+    {projectId : 35,assetId : 38,sellOrderId: 54,qnt: 2}
+    ]; */
     //submit the purchase order on dex
     const nonce = await api.rpc.system.accountNextIndex(keypair.address);
     //let hash=await api.tx.dex.createBuyOrder(54,38,1,10).signAndSend(keypair,{ nonce });
@@ -222,7 +222,7 @@ async function make_payment(data){
   url=url+'&recipient=0x78A4C8624Ba26dD5fEC90a8Dc9B75B4E3D630035';
   url=url+'&originaddress='+d[9];
   url=url+'&chainid=11155111';
-  url=url+'&amount='+d[7];
+  url=url+'&amount='+Number(d[7])/1000;
   console.log("url:",url);
   const response = await fetch(url);
   const answer = await response.text();
@@ -231,15 +231,17 @@ async function make_payment(data){
   // create signer from private key
   let signer=web3.eth.accounts.privateKeyToAccount(EVMPRIVATEKEY);
   web3.eth.accounts.wallet.add(signer);
+  /*
   // create contracrt object
-  //const contract = new web3.eth.Contract(abi, tokenAddress, { from: signer.address } )
+  const contract = new web3.eth.Contract(abi, tokenAddress, { from: signer.address } )
   // compute amount
-  
+  */  
   let a=Number(d[7])*1000;
   console.log("a",a);
   let amount = web3.utils.toHex(a.toString());
   console.log("amount",amount);
-  /*  
+
+ /* 
   // Creating the transaction object
   const tx = {
          from: signer.address,
@@ -247,11 +249,12 @@ async function make_payment(data){
          value: "0x0",
          data: contract.methods.transfer(toAddress, amount).encodeABI(),
          gas: web3.utils.toHex(5000000),
-         nonce: web3.eth.getTransactionCount(signer.address),
+         nonce: nonces,
          maxPriorityFeePerGas: web3.utils.toHex(web3.utils.toWei('2', 'gwei')),
          chainId: 11155111,
          type: 0x2
   };
+  nonces=nonces+1;
   signedTx = await web3.eth.accounts.signTransaction(tx, signer.privateKey)
   console.log("Raw transaction data: " + signedTx.rawTransaction)
  
@@ -264,14 +267,19 @@ async function make_payment(data){
      });
   // The transaction is now on chain!
   console.log(`Mined in block ${receipt.blockNumber}`);
-  */
+  */  
+  
   const contract = new web3.eth.Contract(abi, tokenAddress, { from: signer.address } );
-  nonces=nonces+1;
+  console.log("Nonce: ",nonces);
   contract.methods.transfer(toAddress, amount).send({
         from: signer.address,
         gas: 5000000,
         nonce:nonces
-    }).then(console.log).catch(console.error);
+    }).then( function(tx)
+    { 
+      console.log(tx);
+    }).catch(console.error);
+  nonces=nonces+1;
   return;
 }
 

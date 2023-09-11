@@ -53,7 +53,6 @@ if (typeof MINVALIDATIONS=='=undefined'){
     process.exit();
 }
 //console.log(BLOCKCHAIN);
-const client = new Client();
 // connect EVM blockchain
 const web3 = new Web3(BLOCKCHAIN || "ws://localhost:8545");
 console.log("Payment Validator v.1.0 - Listening for new events on token ", TOKENADDRESS," for wallet: ",WALLETADDRESS);
@@ -112,7 +111,12 @@ async function mainloop(){
             // get orderid
             let orderid=1;
             let amount=0;
-            await client.connect();
+            let client = new Client();
+            try {
+                await client.connect();
+            }catch(e){	
+             console.log(e);
+            }
             try {
                 const queryText="SELECT * from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
                 console.log(queryText);
@@ -137,54 +141,50 @@ async function mainloop(){
                 await client.end();
                 return;
              }
-            /* 
+             
             // store payment data in the local database
             let fees=0.0;
             let selleraddress='';
             let token='USDT';
-            //console.log(rs.rows[0]);        
+            console.log("rs.rows[0]",rs.rows[0]);        
             const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
             const bov=bo.toHuman();
-            //console.log(bov);
+            console.log("bov",bov);
             fees=bov.totalFee;
             const assetid=bov.orderId;
             const ai= await api.query.assets.asset(bov.assetId);
             const aiv=ai.toHuman();
+            console.log("aiv",aiv);
             // get last block hash
             const { hash, parentHash } = await api.rpc.chain.getHeader();
             selleraddress=aiv.owner;
+            
+            await client.query('BEGIN WORK');
+            await client.query('LOCK TABLE paymentsreceived');
             // check for existing records
             let upd=false;
-            try {
-                const queryText="SELECT * from paymentsreceived where referenceid=$1";
-                rp=await client.query(queryText, [[rs.rows[0]['referenceid']]);
-                if(rp'rowCount']!=0){
-                    upd=true;
-                }
-            } catch (e) {
-                throw e;
-            }
+            const queryText="SELECT * from paymentsreceived where referenceid=$1";
+            console.log("queryText",queryText);
+            let rp=await client.query(queryText, [rs.rows[0]['referenceid']]);
+            if(rp['rowCount']!=0)
+                upd=true;
+                
             if(upd==false){
                 // store the payment data
-                try {
-                  const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
-                  await client.query(queryText, [rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex()],MINVALIDATIONS);
-                } catch (e) {
-                    throw e;
-                } 
+                const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
+                console.log("queryText 2",queryText);
+                await client.query(queryText, [rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex(),MINVALIDATIONS]);
             }else{
                //update the validation counter
-               try {
-                  const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1";
-                  await client.query(queryText, [rs.rows[0]['referenceid']);
-                  } catch (e) {
-                    throw e;
-                } 
+               const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1';
+               console.log("queryText 3",queryText);
+               await client.query(queryText, [rs.rows[0]['referenceid']]);
             }
-            */
+            await client.query('COMMIT WORK');            
             //validate orders on Substrate
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
             await client.end();
+            return;
             
         }
     }
@@ -210,9 +210,12 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
                 throw e;
             } 
         }else{
+                const noncev = await api.rpc.system.accountNextIndex(keys.address);
+                const noncen=Number(noncev.toHuman())+1;
+                console.log("noncesn",noncen);
         	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
         	// Sign and send the transaction using our account with nonce to consider the queue
-        	const hash = await validate.signAndSend(keys,{ nonce: -1 });
+        	const hash = await validate.signAndSend(keys,{ nonce:noncen });
         	console.log("Validation submitted tx: ",hash.toHex());
         }
     }
@@ -224,23 +227,27 @@ async function compute_total_order(orderid,api){
         ao.push(orderid);
     else
         ao=orderid.split(",");
-    //console.log(ao);
+    console.log("orders to check:",ao);
     let tot=0.0;
     for(x in ao){
         if(ao[x].length==0)
             continue;
         const d = await api.query.dex.buyOrders(ao[x]);
         const v=d.toHuman();
-        console.log(v);
+        console.log("order: ",ao[x],v);
         let amount=0.00;
         try {
             const amounts=v.totalAmount.replace(/,/g,"");
-            amount=parseFloat(amounts.substring(0,amounts.length-16));
+            if(amounts.length>16)
+                amount=parseFloat(amounts.substring(0,amounts.length-16));
+            else {
+                amount=parseFloat(amounts)/10;
+            }
         }catch(e){
             console.log(e);
             continue;
         }
-       // console.log(amount);
+        console.log("total order from chain: ",amount);
         tot=tot+amount/100;        
     }
     return(tot);
