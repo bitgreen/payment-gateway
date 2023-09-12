@@ -18,9 +18,19 @@ if (typeof POLYGONNODE==='undefined'){
     console.log("POLYGONNODE variable is not set, please set it for launching the validator");
     process.exit();
 }
+const ETHEREUMTESTNODE = process.env.ETHEREUMTESTNODE;
+if (typeof ETHEREUMTESTNODE==='undefined'){
+    console.log("ETHEREUMTESNODE variable is not set, please set it for launching the validator");
+    process.exit();
+}
 const ETHUSDTADDRESS = process.env.ETHUSDTADDRESS;
 if (typeof ETHUSDTADDRESS==='undefined'){
     console.log("ETHUSDTADDRESS variable is not set, please set it for launching the validator");
+    process.exit();
+}
+const ETHTESTUSDTADDRESS = process.env.ETHTESTUSDTADDRESS;
+if (typeof ETHTESTUSDTADDRESS==='undefined'){
+    console.log("ETHTESTUSDTADDRESS variable is not set, please set it for launching the validator");
     process.exit();
 }
 const POLYUSDTADDRESS = process.env.POLYUSDTADDRESS;
@@ -73,6 +83,8 @@ if (typeof MNEMONIC==='undefined'){
 // connect Ethereum/Polygon node
 console.log("Connecting Ethereum Node");
 const web3 = new Web3(ETHEREUMNODE);
+console.log("Connecting Ethereum TESTNode");
+const web3t = new Web3(ETHEREUMTESTNODE);
 console.log("Connecting Polygon Node");
 const web3p= new Web3(POLYGONNODE);
 console.log("Processing Settlements");
@@ -111,10 +123,13 @@ async function mainloop(){
     let rs;
     try {
         let queryText='';
-        if(TESTNETENABLED=="yes")
-          queryText="SELECT * from paymentsreceived where settled_on is NULL and nrvalidation>=minvalidation  order by selleraddress  desc";
-        else
+        if(TESTNETENABLED=="yes"){
+          queryText="SELECT * from paymentsreceived where settled_on is NULL and chainid=11155111 and nrvalidation>=minvalidation  order by selleraddress  desc";
+        }
+        else{
           queryText="SELECT * from paymentsreceived where settled_on is NULL and (chainid==0 or chainid==1 or chainid=137)  and nrvalidation>=minvalidation order by selleraddress  desc";
+        }
+        console.log(queryText);
         rs=await client.query(queryText,[]);
         if(rs['rowCount']==0){
             console.log("No payments to settle");
@@ -124,15 +139,74 @@ async function mainloop(){
     } catch (e) {
         throw e;
     }
+    // verify the data on blockchain before proceeding with the settlement
+    console.log("Verifing data on the blockchain and stripe....");
+    for (let i in rs.rows){
+       let wb3;
+       let contractaddress;
+       //ignore stripe payment
+       if(rs.rows[i].chainid==0)
+        continue;
+       // for ethereum
+       if(rs.rows[i].chainid==1){
+           wb3=web3;
+           contractaddress=ETHUSDTADDRESS;
+       }
+       // for polygon
+       if(rs.rows[i].chainid==137){
+          wb3=web3p;
+          contractaddress=POLYUSDTADDRESS;
+       }
+       // for Ethereum testnet sepolia
+       if(rs.rows[i].chainid==11155111){
+          wb3=web3t;      
+          contractaddress=ETHTESTUSDTADDRESS;
+       }
+       //ignore the record in case of wrong chain
+       if(typeof wb3 =='undefined')
+          continue;
+       // query the hash on chain to compare the data sender,recipient,amount, erc20 address
+       console.log("rs.rows[i].paymentid",rs.rows[i].paymentid);
+       let tx= await wb3.eth.getTransaction(rs.rows[i].paymentid);
+       console.log("tx",tx);
+       //decode data
+       const erc20TransferABI = [{
+        type: "address",
+        name: "receiver"
+        },{
+         type: "uint256",
+        name: "amount"
+        }];
+        const decoded = web3.eth.abi.decodeParameters(erc20TransferABI,tx.input.slice(10));
+        console.log("decoded",decoded);
+        const amountpaid=decoded[1];
+        const recipient=decoded[0];
+        // verify amount
+        if(Number(amountpaid)/1000000!=rs.rows[i].amount){
+           let e="The amount on chain is different from the amount in the database";
+           throw(e);
+        }
+        if(recipient!=rs.rows[i].recipient){
+           let e="The recipient on chain is different from the one on the database";
+           throw(e);
+        }
+        
+         
+        
+       
+    }
+    console.log("Verificaton on chain passed...");
+    // end verification data on chain
+    
     // iterates the records found
     let seller='';
     let totamount=0.0;
     let totfees=0.0;
     let orders=[];
-    for (i in rs.rows){
+    for (let i in rs.rows){
         console.log(rs.rows[i]);
         r=rs.rows[i];
-        // TODO check data on chain to protect from possible injection in the database
+        
         if (r['selleraddress']!=seller){
             //settlement for the current seller
             if(seller!=''){
@@ -151,7 +225,7 @@ async function mainloop(){
         totamount=totamount+parseFloat(r['amount']);
         totfees=totfees+parseFloat(r['fees']);
         orders.push(r['referenceid']);
-        console.log(totamount,totfees);
+        console.log("Totamount:",totamount,"totfees",totfees);
     }
     // execute the payment for the last seller
     if(seller!=''){
@@ -166,12 +240,36 @@ async function mainloop(){
 }
 
 // function to make payment
-async function make_payment(selleraddress,amount,orders,api,keys){
-    // TODO, fetch the payment method and coordinates
-    // use static data for testing for now
+async function make_payment(selleraddress,amount,orders,client,api,keys){
+    // fetch the payment method and coordinates
+    console.log("selleraddress",selleraddress);
+    let preferences= await api.query.dex.sellerPayoutPreferences(selleraddress);
+    if(preferences.toHex()=='0x'){
+     console.log("No payment preference set for: ",selleraddress);
+     return;
+    }
+    console.log("preferences:", preferences.toHex());
+    throw("exit");
+    //chainId:u32
+    //recipientAddress: BoundedVec<u8, MaxAddressLen>
     //---
-    let paymentmethod='ethusdt';
-    let recipient="0x8cD6F362F061B97EACb9252b820a8Acecd7e3229"
+    let paymentmethod='';
+    if(preferences.chainId==1)
+      paymentmethod='ethusdt';
+    if(preferences.chainId==137)
+      paymentmethod='polyusdt';
+     if(preferences.chainId==0)
+      paymentmethod='bank';
+      if(paymentmethod==''){
+        console.log("No payment method found for: ",selleraddress);
+        return;
+     }
+     if(typeof preferences.recipientAddress== 'undefined' && preferences.chainId!=0){
+        console.log("No destinationa ddress has been found for: ",selleraddress);
+        return;
+     }
+    let recipient=preferences.recipientAddress;
+    console.log("Make Payment  for: ",selleraddress,"to: ",recipient,"paymentmethod:",paymentmethod);
     //---
     let tokenaddress='';
     let web3l;

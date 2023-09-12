@@ -113,9 +113,9 @@ async function mainloop(){
       {projectId : 38,assetId : 35,sellOrderId: 56,qnt: 5},
       {projectId : 39,assetId : 34,sellOrderId: 57,qnt: 4}
     ];
-/*    cart=[
+    cart=[
     {projectId : 35,assetId : 38,sellOrderId: 54,qnt: 2}
-    ]; */
+    ]; 
     //submit the purchase order on dex
     const nonce = await api.rpc.system.accountNextIndex(keypair.address);
     //let hash=await api.tx.dex.createBuyOrder(54,38,1,10).signAndSend(keypair,{ nonce });

@@ -98,10 +98,10 @@ async function mainloop(){
             name: 'value',
             indexed: false
         }];
-        //console.log("tx hash: ",event['transactionHash']);
+        console.log("tx hash: ",event['transactionHash']);
         let transaction = web3.eth.abi.decodeLog(abi,event.data,[event.topics[1], event.topics[2], event.topics[3]]);
         console.log("******************************************");
-        //console.log(transaction);
+        //console.log("transaction:",transaction);
         console.log("### from:",transaction['from']," to: ",transaction['to']," value: ",transaction['value']);
         let rs;
         if(transaction['to']==WALLETADDRESS) {
@@ -157,7 +157,14 @@ async function mainloop(){
             console.log("aiv",aiv);
             // get last block hash
             const { hash, parentHash } = await api.rpc.chain.getHeader();
-            selleraddress=aiv.owner;
+            //selleraddress=aiv.owner;
+            const sellerorder=await api.query.dex.orders(bov.orderId);
+            console.log("sellerorder",sellerorder.toHuman());
+            const sellerorderv=sellerorder.toHuman();
+            selleraddress=sellerorderv.owner;
+            console.log("***************************************");
+            console.log("Seller address:",selleraddress);
+            console.log("***************************************");
             
             await client.query('BEGIN WORK');
             await client.query('LOCK TABLE paymentsreceived');
@@ -173,7 +180,9 @@ async function mainloop(){
                 // store the payment data
                 const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
                 console.log("queryText 2",queryText);
-                await client.query(queryText, [rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex(),MINVALIDATIONS]);
+               let av=[rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex(),MINVALIDATIONS];
+               console.log("av",av);
+                await client.query(queryText,av );
             }else{
                //update the validation counter
                const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1';
