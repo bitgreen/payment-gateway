@@ -49,7 +49,7 @@ if (typeof BLOCKSCONFIRMATION=='=undefined'){
 }
 const MINVALIDATIONS = process.env.MINVALIDATIONS;
 if (typeof MINVALIDATIONS=='=undefined'){
-    console.log("MINVALIDATION variable is not set, please set it for launching the validator");
+    console.log("MINVALIDATIONS variable is not set, please set it for launching the validator");
     process.exit();
 }
 //console.log(BLOCKCHAIN);
@@ -150,7 +150,7 @@ async function mainloop(){
             const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
             const bov=bo.toHuman();
             console.log("bov",bov);
-            fees=bov.totalFee;
+            fees=Number(bov.totalFee.replace(",",""))/1000;
             const assetid=bov.orderId;
             const ai= await api.query.assets.asset(bov.assetId);
             const aiv=ai.toHuman();
@@ -189,6 +189,8 @@ async function mainloop(){
                console.log("queryText 3",queryText);
                await client.query(queryText, [rs.rows[0]['referenceid']]);
             }
+            // delete payment requests matching the payment
+            await client.query("delete from paymentrequests where referenceid=$1",[rs.rows[0]['referenceid']]);
             await client.query('COMMIT WORK');            
             //validate orders on Substrate
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);

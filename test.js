@@ -113,9 +113,9 @@ async function mainloop(){
       {projectId : 38,assetId : 35,sellOrderId: 56,qnt: 5},
       {projectId : 39,assetId : 34,sellOrderId: 57,qnt: 4}
     ];
-    cart=[
-    {projectId : 35,assetId : 38,sellOrderId: 54,qnt: 2}
-    ]; 
+//    cart=[
+//    {projectId : 35,assetId : 38,sellOrderId: 54,qnt: 2}
+//    ]; 
     //submit the purchase order on dex
     const nonce = await api.rpc.system.accountNextIndex(keypair.address);
     //let hash=await api.tx.dex.createBuyOrder(54,38,1,10).signAndSend(keypair,{ nonce });
@@ -123,7 +123,7 @@ async function mainloop(){
     
     const txs = [];
     for (let i=0;i<cart.length;i++){
-      txs.push(api.tx.dex.createBuyOrder(cart[i].sellOrderId,cart[i].assetId,cart[i].qnt,10));
+      txs.push(api.tx.dex.createBuyOrder(cart[i].sellOrderId,cart[i].assetId,cart[i].qnt,100000000000000));
     }
     console.log("Submitting Tx...");
     // construct the batch and send the transactions

@@ -10,76 +10,82 @@ console.log("Payment Gateway Settlement 1.0 - Starting");
 // get environment variables
 const ETHEREUMNODE = process.env.ETHEREUMNODE;
 if (typeof ETHEREUMNODE==='undefined'){
-    console.log("ETHEREUMNODE variable is not set, please set it for launching the validator");
+    console.log("ETHEREUMNODE variable is not set, please set it ");
     process.exit();
 }
 const POLYGONNODE = process.env.POLYGONNODE;
 if (typeof POLYGONNODE==='undefined'){
-    console.log("POLYGONNODE variable is not set, please set it for launching the validator");
+    console.log("POLYGONNODE variable is not set, please set it ");
     process.exit();
 }
 const ETHEREUMTESTNODE = process.env.ETHEREUMTESTNODE;
 if (typeof ETHEREUMTESTNODE==='undefined'){
-    console.log("ETHEREUMTESNODE variable is not set, please set it for launching the validator");
+    console.log("ETHEREUMTESNODE variable is not set, please set it ");
     process.exit();
 }
 const ETHUSDTADDRESS = process.env.ETHUSDTADDRESS;
 if (typeof ETHUSDTADDRESS==='undefined'){
-    console.log("ETHUSDTADDRESS variable is not set, please set it for launching the validator");
+    console.log("ETHUSDTADDRESS variable is not set, please set it ");
     process.exit();
 }
 const ETHTESTUSDTADDRESS = process.env.ETHTESTUSDTADDRESS;
 if (typeof ETHTESTUSDTADDRESS==='undefined'){
-    console.log("ETHTESTUSDTADDRESS variable is not set, please set it for launching the validator");
+    console.log("ETHTESTUSDTADDRESS variable is not set, please set it ");
     process.exit();
 }
 const POLYUSDTADDRESS = process.env.POLYUSDTADDRESS;
 if (typeof POLYUSDTADDRESS==='undefined'){
-    console.log("POLYUSDTADDRESS variable is not set, please set it for launching the validator");
+    console.log("POLYUSDTADDRESS variable is not set, please set it ");
     process.exit();
 }
 const WALLETADDRESS = process.env.WALLETADDRESS;
 if (typeof WALLETADDRESS==='undefined'){
-    console.log("WALLETADDRESS variable is not set, please set it for launching the validator");
+    console.log("WALLETADDRESS variable is not set, please set it ");
     process.exit();
 }
 const WALLETPRIVATEKEY = process.env.WALLETPRIVATEKEY;
 if (typeof WALLETPRIVATEKEY==='undefined'){
-    console.log("WALLETPRIVATEKEY variable is not set, please set it for launching the validator");
+    console.log("WALLETPRIVATEKEY variable is not set, please set it ");
     process.exit();
 }
 const ABI = process.env.ABI;
 if (typeof ABI==='undefined'){
-    console.log("ABI variable is not set, please set it for launching the validator. It's the file where to read the ABI of the contract");
+    console.log("ABI variable is not set, please set it . It's the file where to read the ABI of the contract");
     process.exit();
 }
 const ABIJSON=fs.readFileSync(ABI,"ascii");
 
 const TESTNETENABLED = process.env.TESTNETENABLED;
 if (typeof TESTNETENABLED==='undefined'){
-    console.log("TESTNETENABLED variable is not set, please set it for launching the validator");
+    console.log("TESTNETENABLED variable is not set, please set it ");
     process.exit();
 }
 const MINIMUMAMOUNT = process.env.MINIMUMAMOUNT;
 if (typeof MINIMUMAMOUNT==='undefined'){
-    console.log("MINIMUMAMOUNT variable is not set, please set it for launching the validator");
+    console.log("MINIMUMAMOUNT variable is not set, please set it ");
     process.exit();
 }
 const BANKTRANSFERFEES = process.env.BANKTRANSFERFEES;
 if (typeof BANKTRANSFERFEES==='undefined'){
-    console.log("BANKTRANSFERFEES variable is not set, please set it for launching the validator");
+    console.log("BANKTRANSFERFEES variable is not set, please set it ");
     process.exit();
 }
 const SUBSTRATECHAIN = process.env.SUBSTRATECHAIN;
 if (typeof SUBSTRATECHAIN=='=undefined'){
-    console.log("SUBSTRATECHAIN variable is not set, please set it for launching the validator");
+    console.log("SUBSTRATECHAIN variable is not set, please set it ");
     process.exit();
 }
 const MNEMONIC = process.env.MNEMONIC;
 if (typeof MNEMONIC==='undefined'){
-    console.log("MNEMONIC variable is not set, please set it for launching the validator");
+    console.log("MNEMONIC variable is not set, please set it ");
     process.exit();
 }
+const DRYRUN = process.env.DRYRUN;
+if (typeof DRYRUN=='undefined'){
+    console.log("DRYRUN variable is not set, please set it ");
+    process.exit();
+}
+
 // connect Ethereum/Polygon node
 console.log("Connecting Ethereum Node");
 const web3 = new Web3(ETHEREUMNODE);
@@ -123,13 +129,14 @@ async function mainloop(){
     let rs;
     try {
         let queryText='';
+        // process the records based on the chinid
         if(TESTNETENABLED=="yes"){
-          queryText="SELECT * from paymentsreceived where settled_on is NULL and chainid=11155111 and nrvalidation>=minvalidation  order by selleraddress  desc";
+          queryText="SELECT * from paymentsreceived where settled_on is null and chainid=11155111 and nrvalidation>=minvalidation  order by selleraddress  desc";
         }
         else{
-          queryText="SELECT * from paymentsreceived where settled_on is NULL and (chainid==0 or chainid==1 or chainid=137)  and nrvalidation>=minvalidation order by selleraddress  desc";
+          queryText="SELECT * from paymentsreceived where settled_on is null and (chainid==0 or chainid==1 or chainid=137)  and nrvalidation>=minvalidation order by selleraddress  desc";
         }
-        console.log(queryText);
+        //console.log(queryText);
         rs=await client.query(queryText,[]);
         if(rs['rowCount']==0){
             console.log("No payments to settle");
@@ -145,8 +152,10 @@ async function mainloop(){
        let wb3;
        let contractaddress;
        //ignore stripe payment
-       if(rs.rows[i].chainid==0)
+       if(rs.rows[i].chainid==0){
+        //TODO check stripeusing API
         continue;
+       }
        // for ethereum
        if(rs.rows[i].chainid==1){
            wb3=web3;
@@ -166,9 +175,9 @@ async function mainloop(){
        if(typeof wb3 =='undefined')
           continue;
        // query the hash on chain to compare the data sender,recipient,amount, erc20 address
-       console.log("rs.rows[i].paymentid",rs.rows[i].paymentid);
+       //console.log("rs.rows[i].paymentid",rs.rows[i].paymentid);
        let tx= await wb3.eth.getTransaction(rs.rows[i].paymentid);
-       console.log("tx",tx);
+       //console.log("tx",tx);
        //decode data
        const erc20TransferABI = [{
         type: "address",
@@ -178,7 +187,7 @@ async function mainloop(){
         name: "amount"
         }];
         const decoded = web3.eth.abi.decodeParameters(erc20TransferABI,tx.input.slice(10));
-        console.log("decoded",decoded);
+        //console.log("decoded",decoded);
         const amountpaid=decoded[1];
         const recipient=decoded[0];
         // verify amount
@@ -190,10 +199,6 @@ async function mainloop(){
            let e="The recipient on chain is different from the one on the database";
            throw(e);
         }
-        
-         
-        
-       
     }
     console.log("Verificaton on chain passed...");
     // end verification data on chain
@@ -204,17 +209,23 @@ async function mainloop(){
     let totfees=0.0;
     let orders=[];
     for (let i in rs.rows){
-        console.log(rs.rows[i]);
+        //console.log(rs.rows[i]);
         r=rs.rows[i];
         
         if (r['selleraddress']!=seller){
             //settlement for the current seller
             if(seller!=''){
-                console.log("Payment of: ",totamount-totfees," to: ",seller, " for: ",orders);
+                console.log("*******************************************************************");
+                console.log("Payment of: ",totamount-totfees,"from total orders:",totamount,"fees: ",totfees," to: ",seller, " for: ",orders);
+                console.log("*******************************************************************");
                 if((totamount-totfees)>parseFloat(MINIMUMAMOUNT))
                     await make_payment(seller,(totamount-totfees),orders,client,api,keys);
-                else
+                else{
+                    console.log("##############################################################");
+                    console.log("Payment of: ",totamount-totfees,"from total orders:",totamount,"fees: ",totfees," to: ",seller, " for: ",orders);
                     console.log("Under the minimum amount for payment");
+                    console.log("##############################################################");
+                }
             }
             // continue to next seller
             seller=r['selleraddress'];
@@ -225,15 +236,20 @@ async function mainloop(){
         totamount=totamount+parseFloat(r['amount']);
         totfees=totfees+parseFloat(r['fees']);
         orders.push(r['referenceid']);
-        console.log("Totamount:",totamount,"totfees",totfees);
+        //console.log("Totamount:",totamount,"totfees",totfees);
     }
     // execute the payment for the last seller
     if(seller!=''){
-        console.log("Payment of: ",totamount,"fees: ",totfees," to: ",seller, " for: ",orders);
+        console.log("*******************************************************************");
+        console.log("Payment of: ",totamount-totfees,"from total orders:",totamount,"fees: ",totfees," to: ",seller, " for: ",orders);
+        console.log("*******************************************************************");
         if((totamount-totfees)>parseFloat(MINIMUMAMOUNT))
             await make_payment(seller,(totamount-totfees),orders,client,api,keys);
-        else
-         console.log("Under the minimum amount for payment");
+        else {
+            console.log("Under the minimum amount for payment");
+            console.log("##############################################################");
+        }
+
     }
     client.end();
         
@@ -245,11 +261,11 @@ async function make_payment(selleraddress,amount,orders,client,api,keys){
     console.log("selleraddress",selleraddress);
     let preferences= await api.query.dex.sellerPayoutPreferences(selleraddress);
     if(preferences.toHex()=='0x'){
-     console.log("No payment preference set for: ",selleraddress);
-     return;
+        console.log("No payment preference set for: ",selleraddress);
+        return;
     }
-    console.log("preferences:", preferences.toHex());
-    throw("exit");
+    console.log("preferences:", preferences.toHuman());
+    return;
     //chainId:u32
     //recipientAddress: BoundedVec<u8, MaxAddressLen>
     //---
