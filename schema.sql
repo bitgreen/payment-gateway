@@ -2,8 +2,6 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 13.9 (Debian 13.9-0+deb11u1)
--- Dumped by pg_dump version 13.9 (Debian 13.9-0+deb11u1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -33,7 +31,8 @@ CREATE TABLE public.paymentrequests (
     originaddress character varying(64) DEFAULT ''::character varying NOT NULL,
     token character varying(10) DEFAULT ''::character varying NOT NULL,
     chainid integer DEFAULT 1 NOT NULL,
-    blockhash character varying(66)
+    blockhash character varying(66),
+    settled_on date
 );
 
 
@@ -60,7 +59,8 @@ CREATE TABLE public.paymentsreceived (
     settled_chainid integer DEFAULT 1,
     settled_paymentid character varying(256),
     minvalidation integer DEFAULT 1,
-    nrvalidation integer DEFAULT 0
+    nrvalidation integer DEFAULT 0,
+    txhash character varying(128) DEFAULT ''::character varying
 );
 
 
@@ -96,6 +96,15 @@ CREATE TABLE public.validationsqueue (
 ALTER TABLE public.validationsqueue OWNER TO postgres;
 
 --
+-- Data for Name: paymentrequests; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.paymentrequests (referenceid, sender, recipient, amount, created_on, originaddress, token, chainid, blockhash, settled_on) FROM stdin;
+\.
+
+
+
+--
 -- Name: paymentrequests paymentrequests_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -117,6 +126,13 @@ ALTER TABLE ONLY public.striperequests
 
 ALTER TABLE ONLY public.validationsqueue
     ADD CONSTRAINT validationsqueue_pkey PRIMARY KEY (buyorderid);
+
+
+--
+-- Name: idx_sender_recipient; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_sender_recipient ON public.paymentrequests USING btree (sender, recipient);
 
 
 --
@@ -150,4 +166,3 @@ GRANT ALL ON TABLE public.validationsqueue TO paymentgateway;
 --
 -- PostgreSQL database dump complete
 --
-
