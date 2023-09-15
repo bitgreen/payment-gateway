@@ -216,7 +216,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
             //store in the queue
             try {
               const queryText = 'INSERT INTO validationsqueue(validatoraddress,buyorderid,txhash,chainid) values($1,$2,$3,$4)';
-              await client.query(queryText, [keys.address,orderid,tx,blockchainid]);
+              await client.query(queryText, [keys.address,ao[x],tx,blockchainid]);
             } catch (e) {
                 throw e;
             } 
