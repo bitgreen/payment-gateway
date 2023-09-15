@@ -6,9 +6,17 @@
 const express = require('express');
 const  fs = require('fs');
 const { Client } = require('pg')
-const stripe = require('stripe')('sk_test_51MDq0VKluWo1Xbjw9dB5xdWgGUulDA6ckewLKyz4wdQee6yrxX5QhhJ5oblHgWhVApt2VDOlHH0JxARlaimxnC5s00Laa66Evw');
+const STRIPEAPIKEY = process.env.STRIPEAPIKEY;
+if (typeof STRIPEAPIKEY==='undefined'){
+    console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
+    process.exit();
+}
+const stripe = require('stripe')(STRIPEAPIKEY);
 // Polkadot.js to connect to the Substrate chain
 const { ApiPromise, WsProvider } = require('@polkadot/api');
+// rate limit middleware
+const rateLimit = require('express-rate-limit');
+
 // read environment variables
 const SUBSTRATE = process.env.SUBSTRATE;
 if (typeof SUBSTRATE=='=undefined'){
@@ -24,9 +32,15 @@ const SSL_KEY = process.env.SSL_KEY
 // USDT on Polygon
 //https://polygonscan.com/address/0xc2132d05d31c914a87c6611c10748aeb04b58e8f
 // https://polygonscan.com/token/0xc2132d05d31c914a87c6611c10748aeb04b58e8f
-// project id for web3modal
-const web3projectid='430bb551306002b2cd049dcc47587247';
-
+// configure the rate limit
+const rateLimitsUser = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hrs in milliseconds
+  max: 1000,
+  message: 'You have exceeded the 1000 requests in 24 hrs limit!', 
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+// banner 
 console.log("Payment Gateway 1.0 - Starting");
 mainloop();
 console.log("[INFO] Listening for connections");
@@ -315,6 +329,9 @@ async function mainloop(){
     });
     // send static files from html folder
     app.use(express.static('html'));
+    // use the rate limits middleware
+    app.use(rateLimitsUser);
+    app.set('trust proxy', 1);
     // listen on port 3000        
     let server = app.listen(3000, function () { });
     // it can manage directly a https connection, but may be better to use NGINX as reverse proxy.
