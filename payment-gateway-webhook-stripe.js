@@ -31,14 +31,13 @@ if (typeof STRIPESIGKEY==='undefined'){
     process.exit();
 }
 
-console.log("Configuring Stripe: ",STRIPEAPIKEY);
 const stripe = require('stripe')(STRIPEAPIKEY);
 
 console.log("Setting up Express server");
 const express = require('express');
 const app=express();
 
-console.log("Payment Validator fo Stripe v.1.0 - Webhooks Server");
+console.log("Payment Validator fo Stripe v.1.01 - Webhooks Server");
 // we execute the main loop in an async function
 mainloop();
 
@@ -64,6 +63,7 @@ async function mainloop(){
       event = stripe.webhooks.constructEvent(request.body, sig, STRIPESIGKEY);
     } catch (err) {
       response.status(400).send(`Webhook Error: ${err.message}`);
+      console.log("100 - ERROR",err.message);
       return;
     }
     // Handle the event
@@ -73,7 +73,7 @@ async function mainloop(){
         // retrieve the event from stripe for security (someone may had submitted a fake one with the correct stripe signature.
         // just additional check with 0 costs to increase the security
         const eventv = await stripe.events.retrieve(event.id);
-        //TODO: check "livemode" should be true (no we accept from sandbox)
+        //TODO: check "livemode" should be true (now we accept from sandbox)
         const pi = eventv.data.object;      
         await client.connect();
         // search for the matching payment request
@@ -83,25 +83,27 @@ async function mainloop(){
           rs=await client.query(queryText, [pi.id]);
           //console.log(rs);
         } catch (e) {
-          throw e;
+          console.log(("101 - ERROR",e);
+          response.json({received: true});
+          await client.end();
+          return;  
         }
         //console.log(pi);
         if(typeof rs.rows[0]==='undefined'){
-            console.log("ERROR: the payment id has not been found:",pi.id);
-            response.json({received: true});
+            console.log("102 - ERROR: the payment id has not been found:",pi.id);
             await client.end();
             return;
         }
         // check for currency =usd
          if(pi.currency!='usd'){
-             console.log("ERROR: the currency received is wrong, possible hacking attempt");
+             console.log("103 - ERROR: the currency received is wrong, possible hacking attempt");
              response.json({received: true});
              await client.end();
              return;
          }                   
         // verify amount
         if((rs.rows[0]['amount']*100)!=pi.amount_received){
-            console.log("ERROR: the payment amount does not match the order (1): ",pi.id,rs.rows[0]['amount']*100,pi.amount_received);
+            console.log("104 - ERROR: the payment amount does not match the order (1): ",pi.id,rs.rows[0]['amount']*100,pi.amount_received);
             response.json({received: true});
             await client.end();
             return;
@@ -109,7 +111,7 @@ async function mainloop(){
         // check the amount for matching on chain
          const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
          if((totorders*100)!=pi.amount_received){
-            console.log("ERROR: the payment amount does not match the orders on chain (2): ",totorders*100,pi.id,rs.rows[0]['amount'],pi.amount_received);
+            console.log("105 - ERROR: the payment amount does not match the orders on chain (2): ",totorders*100,pi.id,rs.rows[0]['amount'],pi.amount_received);
             response.json({received: true});
             await client.end();
             return;
@@ -148,19 +150,35 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
         if(ao[x].length==0)
             continue;
         console.log("ao[x]",ao[x],blockchainid,tx)
-	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+
 	// Sign and send the transaction using our account with nonce to consider the queue
-    	const hash = await validate.signAndSend(keys,{ nonce: -1 });
-	console.log("Validation submitted tx: ",hash.toHex());
-	// query back stripe for the same transaction and make a second confirmation TODO: enable it
-        //const eventv = await stripe.events.retrieve(event.id);
-        //if(isObjectEqual(event,eventv){
-            console.log("ao[x]",ao[x],blockchainid,tx)	
-            const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
-            // Sign and send the transaction using our account
-            const hash2 = await validate.signAndSend(keys2,{ nonce: -1 });
-            console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
-        //}
+	try{
+            const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+            const hash = await validate.signAndSend(keys,{ nonce: -1 });
+            console.log("Validation submitted tx: ",hash.toHex());
+	}catch(e){
+	    console.log("105 - ERROR",e);
+	    return;
+	}
+	// query back stripe for the same transaction and make a second confirmation
+	try{
+            const eventv = await stripe.events.retrieve(event.id);
+        }catch(e){
+            console.log("106 - ERROR",e);
+            return;
+        }
+        if(isObjectEqual(event,eventv){
+            //console.log("ao[x]",ao[x],blockchainid,tx)	
+            try{
+                const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+                // Sign and send the transaction using our account
+                const hash2 = await validate.signAndSend(keys2,{ nonce: -1 });
+                console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
+            } catch(e){
+                 console.log("107 - ERROR",e);
+                 return;
+            }
+        }
     }
 }
 
@@ -176,16 +194,21 @@ async function compute_total_order(orderid,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
-        console.log("ao[x]",ao[x]);
-        const d = await api.query.dex.buyOrders(ao[x]);
-        const v=d.toHuman();
+        //console.log("ao[x]",ao[x]);
+        try{
+            const d = await api.query.dex.buyOrders(ao[x]);
+            const v=d.toHuman();
+        }catch(e){
+            console.log("108 - ERROR",e);
+            return;
+        }
         //console.log(v);
         let amount=0.00;
         try {
             const amounts=v.totalAmount.replace(/,/g,"");
             amount=parseFloat(amounts.substring(0,amounts.length-16));
         }catch(e){
-            console.log(e);
+            console.log("109 - ERROR",e);
             continue;
         }
        // console.log(amount);
@@ -207,21 +230,26 @@ async function store_orders_paid(orderid,api,client,token,stripeid){
         if(ao[x].length==0)
             continue;
         console.log("ao[x]",ao[x]);
-        const d = await api.query.dex.buyOrders(ao[x]);
-        const v=d.toHuman();
+        try{
+            const d = await api.query.dex.buyOrders(ao[x]);
+            const v=d.toHuman();
+        }catch(e){
+            console.log("110 - ERROR",e);
+            return;
+        }
         let amount=0.00;
         try {
             const amounts=v.totalAmount.replace(/,/g,"");
             amount=parseFloat(amounts.substring(0,amounts.length-16));
         }catch(e){
-            console.log("Compute amount:m",e);
+            console.log("111 - ERROR",e);
         }
         let fees=0.00;
         try {
             const feess=v.totalFee.replace(/,/g,"");
             fees=parseFloat(feess.substring(0,feess.length-16));
         }catch(e){
-            console.log("Computing fees:",e);
+            console.log("112 - ERROR",e);
         }
         let selleraddress='';
         let token='';       
@@ -231,15 +259,20 @@ async function store_orders_paid(orderid,api,client,token,stripeid){
         const ai= await api.query.assets.asset(assetid);
         const aiv=ai.toHuman();
         // get last block hash
-        const { hash, parentHash } = await api.rpc.chain.getHeader();
-        console.log(aiv);
+        try{
+            const { hash, parentHash } = await api.rpc.chain.getHeader();
+        }catch(e){
+            console.log("113 - ERROR",e);
+            return;
+        }
         selleraddress=aiv.owner;
         // store the payment data
         try {
               const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,1)';
               await client.query(queryText, [v.orderId,"","",amount,fees,selleraddress,token,0,stripeid,hash.toHex()]);
         } catch (e) {
-                throw e;
+              console.log("114 - ERROR",e);
+              return;
         } 
     }
     return(tot);

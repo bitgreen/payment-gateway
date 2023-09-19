@@ -55,7 +55,7 @@ if (typeof MINVALIDATIONS=='=undefined'){
 //console.log(BLOCKCHAIN);
 // connect EVM blockchain
 const web3 = new Web3(BLOCKCHAIN || "ws://localhost:8545");
-console.log("Payment Validator v.1.0 - Listening for new events on token ", TOKENADDRESS," for wallet: ",WALLETADDRESS);
+console.log("Payment Validator v.1.01 - Listening for new events on token ", TOKENADDRESS," for wallet: ",WALLETADDRESS);
 // execute a main loop for async oeprations
 mainloop();
 async function mainloop(){
@@ -65,9 +65,6 @@ async function mainloop(){
     const keyring = new Keyring({ type: 'sr25519' });
     let keys=keyring.createFromUri(MNEMONIC);
     console.log("Validator Address: ",keys.address);
-    // connect to database
-    // await client.connect();
-
     // read decimals
     //let ABI = [{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_upgradedAddress","type":"address"}],"name":"deprecate","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"deprecated","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_evilUser","type":"address"}],"name":"addBlackList","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"upgradedAddress","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"balances","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"maximumFee","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"_totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"unpause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_maker","type":"address"}],"name":"getBlackListStatus","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"},{"name":"","type":"address"}],"name":"allowed","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"paused","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"who","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"pause","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"getOwner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"newBasisPoints","type":"uint256"},{"name":"newMaxFee","type":"uint256"}],"name":"setParams","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"amount","type":"uint256"}],"name":"issue","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"amount","type":"uint256"}],"name":"redeem","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"basisPointsRate","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"isBlackListed","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_clearedUser","type":"address"}],"name":"removeBlackList","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"MAX_UINT","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"_blackListedUser","type":"address"}],"name":"destroyBlackFunds","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"inputs":[{"name":"_initialSupply","type":"uint256"},{"name":"_name","type":"string"},{"name":"_symbol","type":"string"},{"name":"_decimals","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"}],"name":"Issue","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"amount","type":"uint256"}],"name":"Redeem","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"newAddress","type":"address"}],"name":"Deprecate","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"feeBasisPoints","type":"uint256"},{"indexed":false,"name":"maxFee","type":"uint256"}],"name":"Params","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_blackListedUser","type":"address"},{"indexed":false,"name":"_balance","type":"uint256"}],"name":"DestroyedBlackFunds","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_user","type":"address"}],"name":"AddedBlackList","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_user","type":"address"}],"name":"RemovedBlackList","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[],"name":"Pause","type":"event"},{"anonymous":false,"inputs":[],"name":"Unpause","type":"event"}];
     let contract = new web3.eth.Contract(JSON.parse(ABIJSON), TOKENADDRESS);
@@ -115,29 +112,29 @@ async function mainloop(){
             try {
                 await client.connect();
             }catch(e){	
-             console.log(e);
+             console.log("100 - ERROR",e);
+             return;
             }
             try {
                 const queryText="SELECT * from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
-                console.log(queryText);
                 amount=transaction['value']/1000000;
-                console.log([transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
+                //console.log([transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
                 rs=await client.query(queryText, [transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
-                console.log(rs);
                 if(rs['rowCount']==0){
-                    console.log("ERROR - referenceid not found");
+                    console.log("101 - ERROR referenceid not found");
                     await client.end();
                     return;
                 }
                 //console.log(rs);
             } catch (e) {
-                throw e;
+                console.log("102 - ERROR",e);
+                await client.end();
+                return;
             }
-            console.log(rs.rows[0]['referenceid']);
             // check the amount for matching on chain 
             const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
             if(totorders!=(transaction['value']/1000000)){
-                console.log("ERROR: the payment amount does not matcht the orders on chain: ",(transaction['value']/1000000),totorders);
+                console.log("103 - ERROR the payment amount does not matcht the orders on chain: ",(transaction['value']/1000000),totorders);
                 await client.end();
                 return;
              }
@@ -146,52 +143,68 @@ async function mainloop(){
             let fees=0.0;
             let selleraddress='';
             let token='USDT';
-            console.log("rs.rows[0]",rs.rows[0]);        
-            const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
-            const bov=bo.toHuman();
-            console.log("bov",bov);
+            try {
+                const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
+                const bov=bo.toHuman();
+            }catch(e){
+                console.log("103 - ERROR",e);
+                await client.end();
+                return;
+            }
             fees=Number(bov.totalFee.replace(",",""))/1000;
             const assetid=bov.orderId;
             const ai= await api.query.assets.asset(bov.assetId);
             const aiv=ai.toHuman();
-            console.log("aiv",aiv);
-            // get last block hash
-            const { hash, parentHash } = await api.rpc.chain.getHeader();
-            //selleraddress=aiv.owner;
-            const sellerorder=await api.query.dex.orders(bov.orderId);
-            console.log("sellerorder",sellerorder.toHuman());
-            const sellerorderv=sellerorder.toHuman();
+            try{
+                // get last block hash
+                const { hash, parentHash } = await api.rpc.chain.getHeader();
+            }catch(e){
+                console.log("104 - ERROR",e);
+                await client.end();
+                return;
+            }
+            try{
+                //selleraddress=aiv.owner;
+                const sellerorder=await api.query.dex.orders(bov.orderId);
+                const sellerorderv=sellerorder.toHuman();
+            }catch(e){
+                console.log("105 - ERROR",e);
+                await client.end();
+                return;
+            }
+            
             selleraddress=sellerorderv.owner;
             console.log("***************************************");
             console.log("Seller address:",selleraddress);
             console.log("***************************************");
-            
-            await client.query('BEGIN WORK');
-            await client.query('LOCK TABLE paymentsreceived');
-            // check for existing records
-            let upd=false;
-            const queryText="SELECT * from paymentsreceived where referenceid=$1";
-            console.log("queryText",queryText);
-            let rp=await client.query(queryText, [rs.rows[0]['referenceid']]);
-            if(rp['rowCount']!=0)
-                upd=true;
-                
-            if(upd==false){
-                // store the payment data
-                const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
-                console.log("queryText 2",queryText);
-               let av=[rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex(),MINVALIDATIONS];
-               console.log("av",av);
-                await client.query(queryText,av );
-            }else{
-               //update the validation counter
-               const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1';
-               console.log("queryText 3",queryText);
-               await client.query(queryText, [rs.rows[0]['referenceid']]);
+            try{
+                await client.query('BEGIN WORK');
+                await client.query('LOCK TABLE paymentsreceived');
+                // check for existing records
+                let upd=false;
+                const queryText="SELECT * from paymentsreceived where referenceid=$1";
+                let rp=await client.query(queryText, [rs.rows[0]['referenceid']]);
+                if(rp['rowCount']!=0)
+                    upd=true;
+                if(upd==false){
+                    // store the payment data
+                    const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
+                    let av=[rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex(),MINVALIDATIONS];
+                    await client.query(queryText,av );
+                }else{
+                   //update the validation counter
+                   const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1';
+                   await client.query(queryText, [rs.rows[0]['referenceid']]);
+                }
+                // delete payment requests matching the payment
+                await client.query("delete from paymentrequests where referenceid=$1",[rs.rows[0]['referenceid']]);
+                await client.query('COMMIT WORK');            
+            }catch(e){
+                console.log("106 - ERROR",e);
+                await client.end();
+                return;
             }
-            // delete payment requests matching the payment
-            await client.query("delete from paymentrequests where referenceid=$1",[rs.rows[0]['referenceid']]);
-            await client.query('COMMIT WORK');            
+            
             //validate orders on Substrate
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
             await client.end();
@@ -218,16 +231,21 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
               const queryText = 'INSERT INTO validationsqueue(validatoraddress,buyorderid,txhash,chainid) values($1,$2,$3,$4)';
               await client.query(queryText, [keys.address,ao[x],tx,blockchainid]);
             } catch (e) {
-                throw e;
+                console.log("107 - ERROR",e);
+                return;
             } 
         }else{
                 const noncev = await api.rpc.system.accountNextIndex(keys.address);
                 const noncen=Number(noncev.toHuman())+1;
-                console.log("noncesn",noncen);
-        	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
-        	// Sign and send the transaction using our account with nonce to consider the queue
-        	const hash = await validate.signAndSend(keys,{ nonce:noncen });
-        	console.log("Validation submitted tx: ",hash.toHex());
+                try{
+                	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+                	// Sign and send the transaction using our account with nonce to consider the queue
+                	const hash = await validate.signAndSend(keys,{ nonce:noncen });
+                	console.log("Validation submitted tx: ",hash.toHex());
+                }catch(e){
+                    console.log("108 - ERROR",e);
+                    return;
+                }
         }
     }
 }
@@ -243,9 +261,13 @@ async function compute_total_order(orderid,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
-        const d = await api.query.dex.buyOrders(ao[x]);
-        const v=d.toHuman();
-        console.log("order: ",ao[x],v);
+        try{
+            const d = await api.query.dex.buyOrders(ao[x]);
+            const v=d.toHuman();
+        }catch(e){
+            console.log("109 - ERROR",e);
+            continue;
+        }
         let amount=0.00;
         try {
             const amounts=v.totalAmount.replace(/,/g,"");
