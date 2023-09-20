@@ -143,9 +143,10 @@ async function mainloop(){
             let fees=0.0;
             let selleraddress='';
             let token='USDT';
+            let bov;
             try {
                 const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
-                const bov=bo.toHuman();
+                bov=bo.toHuman();
             }catch(e){
                 console.log("103 - ERROR",e);
                 await client.end();
@@ -155,18 +156,20 @@ async function mainloop(){
             const assetid=bov.orderId;
             const ai= await api.query.assets.asset(bov.assetId);
             const aiv=ai.toHuman();
+            let header;
             try{
                 // get last block hash
-                const { hash, parentHash } = await api.rpc.chain.getHeader();
+                header = await api.rpc.chain.getHeader();
             }catch(e){
                 console.log("104 - ERROR",e);
                 await client.end();
                 return;
             }
+            let sellerorderv;
             try{
                 //selleraddress=aiv.owner;
                 const sellerorder=await api.query.dex.orders(bov.orderId);
-                const sellerorderv=sellerorder.toHuman();
+                sellerorderv=sellerorder.toHuman();
             }catch(e){
                 console.log("105 - ERROR",e);
                 await client.end();
@@ -189,7 +192,7 @@ async function mainloop(){
                 if(upd==false){
                     // store the payment data
                     const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
-                    let av=[rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],hash.toHex(),MINVALIDATIONS];
+                    let av=[rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],header.hash.toHex(),MINVALIDATIONS];
                     await client.query(queryText,av );
                 }else{
                    //update the validation counter
@@ -261,9 +264,10 @@ async function compute_total_order(orderid,api){
     for(x in ao){
         if(ao[x].length==0)
             continue;
+        let v;
         try{
             const d = await api.query.dex.buyOrders(ao[x]);
-            const v=d.toHuman();
+            v=d.toHuman();
         }catch(e){
             console.log("109 - ERROR",e);
             continue;

@@ -120,8 +120,9 @@ async function mainloop(){
             res.cookie('dp',dp);
             res.cookie('v',v);
             // get url from Stripe
+            let stripesession;
             try{
-                const stripesession = await stripe.checkout.sessions.create({
+                stripesession = await stripe.checkout.sessions.create({
                 line_items: [
                   {
                     price_data: {
@@ -188,8 +189,9 @@ async function mainloop(){
             res.json({error: "ERROR: The description is missing, please use parameter d"});
             return;
         }
+        let paymentIntent;
         try {
-            const paymentIntent = await stripe.paymentIntents.create({
+                paymentIntent = await stripe.paymentIntents.create({
                   amount: a,
                   currency: 'usd',
                   description: d,
