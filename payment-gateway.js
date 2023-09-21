@@ -6,51 +6,151 @@
 const express = require('express');
 const  fs = require('fs');
 const { Client } = require('pg')
-const STRIPEAPIKEY = process.env.STRIPEAPIKEY;
-if (typeof STRIPEAPIKEY==='undefined'){
-    console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const stripe = require('stripe')(STRIPEAPIKEY);
-// Polkadot.js to connect to the Substrate chain
-const { ApiPromise, WsProvider } = require('@polkadot/api');
-// rate limit middleware
-const rateLimit = require('express-rate-limit');
+// add crypto module
+const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
+const { Buffer } = require('node:buffer');
+const { readFileSync } = require('node:fs');
+const prompt = require('prompt-sync')();
+// global vars
+let STRIPEAPIKEY;
+let SUBSTRATE;
+let SSL_CERT;
+let SSL_KEY;
+let PGUSER;
+let PGPASSWORD;
+let PGHOST;
+let PGDATABASE;
 
-// read environment variables
-const SUBSTRATE = process.env.SUBSTRATE;
-if (typeof SUBSTRATE=='=undefined'){
-    console.log("SUBSTRATE variable is not set, please set it for launching the validator");
-    process.exit();
-}
-// setup the web server based on "express"
-let app = express();
-// read environment variables
-const SSL_CERT = process.env.SSL_CERT
-const SSL_KEY = process.env.SSL_KEY
-// configure the rate limit
-const rateLimitsUser = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hrs in milliseconds
-  max: 1000,
-  message: 'You have exceeded the 1000 requests in 24 hrs limit!', 
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-// banner 
-console.log("Payment Gateway 1.01 - Starting");
+// call the main async function 
 mainloop();
-console.log("[INFO] Listening for connections");
 
 // main loop to use async functions
 async function mainloop(){
-    // connect to the Postgresql DB
-    const client = new Client();
-    await client.connect();
+    // check for encryped configuration
+    const ENCRYPTEDCONF= process.env.ENCRYPTEDCONF;
+    if (typeof ENCRYPTEDCONF!=='undefined'){
+        let fc;
+        // read file
+        try {
+             fc=readFileSync(ENCRYPTEDCONF);
+        }catch(e){
+            console.log("ERROR reading file",ENCRYPTEDCONF,e);
+            return;
+        }
+        let pwd=prompt("Password to decrypt the configuration:",{echo: ''});
+        //decrypt
+        let cleartextuint8= await decrypt_symmetric(fc,pwd);
+        if(cleartextuint8==false){
+            console.log("ERROR: decryption failed, password may be wrong");
+            return;
+        }
+        let cleartext = Buffer.from(cleartextuint8).toString();    
+        const conf=JSON.parse(cleartext);
+        STRIPEAPIKEY = conf.STRIPEAPIKEY;
+        if (typeof STRIPEAPIKEY==='undefined'){
+            console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        SUBSTRATE = conf.SUBSTRATE;
+        if (typeof SUBSTRATE=='=undefined'){
+            console.log("SUBSTRATE variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        SSL_CERT = conf.SSL_CERT;
+        SSL_KEY = conf.SSL_KEY;
+        //database vars
+        PGUSER = conf.PGUSER;
+        if (typeof PGUSER==='undefined'){
+            console.log("PGUSER variable is not set, please set it");
+            process.exit();
+        }
+        PGPASSWORD = conf.PGPASSWORD;
+        if (typeof PGPASSWORD==='undefined'){
+            console.log("PGPASSWORD variable is not set, please set it");
+            process.exit();
+        }
+        PGHOST = conf.PGHOST;
+        if (typeof PGHOST==='undefined'){
+            console.log("PGHOST variable is not set, please set it");
+            process.exit();
+        }
+        PGDATABASE = conf.PGDATABASE;
+        if (typeof PGDATABASE==='undefined'){
+            console.log("PGDATABASE variable is not set, please set it");
+            process.exit();
+        }
+        return;
+    }
+    //load parameters from environment variables if configuration is not encrypted
+    else{
+        STRIPEAPIKEY = process.env.STRIPEAPIKEY;
+        if (typeof STRIPEAPIKEY==='undefined'){
+            console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        // read environment variables
+        SUBSTRATE = process.env.SUBSTRATE;
+        if (typeof SUBSTRATE=='=undefined'){
+            console.log("SUBSTRATE variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        SSL_CERT = process.env.SSL_CERT;
+        SSL_KEY = process.env.SSL_KEY;
+        //database vars
+        PGUSER = process.env.PGUSER;
+        if (typeof PGUSER==='undefined'){
+            console.log("PGUSER variable is not set, please set it");
+            process.exit();
+        }
+        PGPASSWORD = process.env.PGPASSWORD;
+        if (typeof PGPASSWORD==='undefined'){
+            console.log("PGPASSWORD variable is not set, please set it");
+            process.exit();
+        }
+        PGHOST = process.env.PGHOST;
+        if (typeof PGHOST==='undefined'){
+            console.log("PGHOST variable is not set, please set it");
+            process.exit();
+        }
+        PGDATABASE = process.env.PGDATABASE;
+        if (typeof PGDATABASE==='undefined'){
+            console.log("PGDATABASE variable is not set, please set it");
+            process.exit();
+        }
+    }
+    // create strip object
+    const stripe = require('stripe')(STRIPEAPIKEY);
+    // Polkadot.js to connect to the Substrate chain
+    const { ApiPromise, WsProvider } = require('@polkadot/api');
+    // rate limit middleware
+    const rateLimit = require('express-rate-limit');
+    // setup the web server based on "express"
+    let app = express();
+    // configure the rate limit
+    const rateLimitsUser = rateLimit({
+      windowMs: 24 * 60 * 60 * 1000, // 24 hrs in milliseconds
+      max: 1000,
+      message: 'You have exceeded the 1000 requests in 24 hrs limit!', 
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+    // show banner 
+    console.log("Payment Gateway 1.01 - Starting");
+    console.log("[INFO] Listening for connections");
+    // configure the connection to the Postgresql DB
+    const client = new Client({
+        host: PGHOST,
+        database: PGDATABASE,
+        user: PGUSER,
+        password: PGPASSWORD,
+    });
+    // we make the connection inside the api calls since the postgres drops the connection when unused for some time
+    
     // connect to the substrate Node:
     const wsProvider = new WsProvider(SUBSTRATE);
     const api = await ApiPromise.create({ provider: wsProvider });    
     
-    // manage the API 
+    // manage the API on express server
     app.get('/', async function (req, res) {
         let p=req.query.p;
         let a=req.query.a;
@@ -145,7 +245,9 @@ async function mainloop(){
             const status="pending";
             try {
               const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
+              await client.connect();
               await client.query(queryText, [stripesession.id,r,a,status]);
+              await client.end();
             } catch (e) {
                 console.log(e);
                 res.send("101 - Error storing payment request");
@@ -209,8 +311,10 @@ async function mainloop(){
        // store the payment intent 
        const status="pending";
        try {
+              await client.connect();
               const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
               await client.query(queryText, [paymentIntent.id,r,(a/100),status]);
+              await client.end();
        } catch (e) {
            res.send("104 - Error storing payment request");
            console.log(e);
@@ -289,50 +393,56 @@ async function mainloop(){
         // check for the same referenceid already present
         let rs;
         try{
-            const queryText="SELECT COUNT(*) AS tot from paymentrequests where referenceid=$1";
+            await client.connect();
+            const queryText="SELECT * from paymentrequests where referenceid=$1";
             rs=await client.query(queryText, [referenceid]);
             //console.log(rs);
         } catch (e) {
-                re.send("105 - Error checking payment requests");
+                res.send("105 - Error checking payment requests");
                 console.log(e);
                 return;
         }
         // read last block hash
-        const blockhash = await api.query.system.parentHash();
+        let blockhash;
+        try{
+            blockhash = await api.query.system.parentHash();
+        } catch(e){
+            res.send("115 - Error reading block hash");
+            console.log(e);
+            return;
+        }
         // insert new record            
-        if(rs.rows[0]['tot']==0){
-            // cancel any pending order for the same accounts and amount
+        if(typeof rs.rows[0]==='undefined'){
             let queryText="";
-            try {
-              queryText = 'delete from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and originaddress=$4 and chainid=$5';
-              await client.query(queryText, [sender,recipient,amount,originaddress,parseInt(chainid)]);
-            } catch (e) {
-                res.send("106 - Error cleaning payment requests");
-                console.log(e);
-                return;
-            }
             // add the payment request
             try {
               queryText = 'INSERT INTO paymentrequests(referenceid,token,sender,recipient,amount,created_on,originaddress,chainid,blockhash) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8)';
               await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,parseInt(chainid),blockhash.toString()]);
+              await client.end();
             } catch (e) {
                 res.send("107 - Error storing payment request");
                 console.log(e);
                 return;
             }
+            res.send('{"answer":"OK","message":"payment request accepted"}');
+            return;
         }
         else {
-        // update some fields only to avoid an injection attack to replace the orderid to associate the payment to a different orderid
-            try {
-              queryText = 'UPDATE paymentrequests SET token=$1,sender=$2,recipient=$3,amount=$4,chainid=$6,blockhash=$7,created_on=current_timestamp where referenceid=$5';
-              await client.query(queryText, [token,sender,recipient,amount,referenceid,parseInt(chainid),blockhash.toString()]);
-            } catch (e) {
-                re.send("108 - Error updating payment request");
-                console.log(e);
+            //check for the same data
+            if(	rs.rows[0].referenceid==referenceid &&
+                rs.rows[0].token==token &&
+                rs.rows[0].sender==sender &&
+                rs.rows[0].recipient==recipient &&
+                rs.rows[0].amount==amount &&
+                rs.rows[0].originaddress==originaddress &&
+                rs.rows[0].chaind==parseInt(chainid)){
+                    res.send('{"answer":"OK","message":"payment request accepted"}');
+                    return;
+            } else {
+                res.send('{"answer":"KO","message":"payment request is preent with different data, cannot be changed for a while"}');
                 return;
-            }            
+            }
         }
-            res.send("OK");
     });
     // send static files from html folder
     app.use(express.static('html'));
