@@ -226,7 +226,12 @@ async function make_payment(data){
   console.log("url:",url);
   const response = await fetch(url);
   const answer = await response.text();
-  console.log(answer);
+  console.log("answer from payment request:",answer);
+  const anj=JSON.parse(answer);
+  if(anj.answer=='KO'){
+    return;
+  }
+    
   const toAddress='0x78A4C8624Ba26dD5fEC90a8Dc9B75B4E3D630035';
   // create signer from private key
   let signer=web3.eth.accounts.privateKeyToAccount(EVMPRIVATEKEY);
