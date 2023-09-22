@@ -48,12 +48,12 @@ async function mainloop(){
         const conf=JSON.parse(cleartext);
         STRIPEAPIKEY = conf.STRIPEAPIKEY;
         if (typeof STRIPEAPIKEY==='undefined'){
-            console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
+            console.log("STRIPEAPIKEY variable is not set, please set it");
             process.exit();
         }
         SUBSTRATE = conf.SUBSTRATE;
         if (typeof SUBSTRATE=='=undefined'){
-            console.log("SUBSTRATE variable is not set, please set it for launching the validator");
+            console.log("SUBSTRATE variable is not set, please set it");
             process.exit();
         }
         SSL_CERT = conf.SSL_CERT;
@@ -85,13 +85,13 @@ async function mainloop(){
     else{
         STRIPEAPIKEY = process.env.STRIPEAPIKEY;
         if (typeof STRIPEAPIKEY==='undefined'){
-            console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
+            console.log("STRIPEAPIKEY variable is not set, please set it");
             process.exit();
         }
         // read environment variables
         SUBSTRATE = process.env.SUBSTRATE;
         if (typeof SUBSTRATE=='=undefined'){
-            console.log("SUBSTRATE variable is not set, please set it for launching the validator");
+            console.log("SUBSTRATE variable is not set, please set it");
             process.exit();
         }
         SSL_CERT = process.env.SSL_CERT;
@@ -137,13 +137,6 @@ async function mainloop(){
     // show banner 
     console.log("Payment Gateway 1.01 - Starting");
     console.log("[INFO] Listening for connections");
-    // configure the connection to the Postgresql DB
-    const client = new Client({
-        host: PGHOST,
-        database: PGDATABASE,
-        user: PGUSER,
-        password: PGPASSWORD,
-    });
     // we make the connection inside the api calls since the postgres drops the connection when unused for some time
     
     // connect to the substrate Node:
@@ -168,39 +161,39 @@ async function mainloop(){
         // d is the description of the purchase
         // o is the origin address on the substrate chain
         if(typeof p === 'undefined'){
-            res.send("ERROR - parameter p (payment method), is missing");
+            errorMessage(res,"ERROR - parameter p (payment method), is missing");
             return;
         }
         if(p != 'USDT' && p!="USDC"){
-            res.send("ERROR - payment method (p) is wrong. it should be USDT or USDC");
+            errorMessage(res,"ERROR - payment method (p) is wrong. it should be USDT or USDC");
             return;
         }
         if(typeof r === 'undefined'){
-            res.send("ERROR - parameter r (reference id), is missing");
+            errorMessage(res,"ERROR - parameter r (reference id), is missing");
             return;
         }
         if(typeof d === 'undefined'){
-            res.send("ERROR - parameter d (description), is missing");
+            errorMessage(res,"ERROR - parameter d (description), is missing");
             return;
         }
         if(typeof o === 'undefined'){
-            res.send("ERROR - parameter o (origin address on substrate chain), is missing");
+            errorMessage(res,"ERROR - parameter o (origin address on substrate chain), is missing");
             return;
         }
         if(typeof rp === 'undefined'){
-            res.send("ERROR - parameter rp (redirect page for successfully payment) is missing");
+            errorMessage(res,"ERROR - parameter rp (redirect page for successfully payment) is missing");
             return;
         }
         if(typeof rnp === 'undefined'){
-            res.send("ERROR - parameter rnp (redirect page for failed payment) is missing");
+            errorMessage(res,"ERROR - parameter rnp (redirect page for failed payment) is missing");
             return;
         }
         if(rp.substring(0,8)!='https://'){
-            res.send("ERROR - parameter rp (redirect page for successfully payment) must start with https://");
+            errorMessage(res,"ERROR - parameter rp (redirect page for successfully payment) must start with https://");
             return;
         }
         if(rnp.substring(0,8)!='https://'){
-            res.send("ERROR - parameter rnp (redirect page for failed payment) must start with https://");
+            errorMessage(res,"ERROR - parameter rnp (redirect page for failed payment) must start with https://");
             return;
         }
         if(typeof dp === 'undefined'){
@@ -236,7 +229,7 @@ async function mainloop(){
                 });
             } catch(e){
                 console.log(e);
-                res.send("100 - Error connecting to payment gateway");
+                errorMessage(res,"100 - Error connecting to payment gateway");
                 return;
             }
             res.cookie('stu',stripesession.url);
@@ -245,20 +238,20 @@ async function mainloop(){
             const status="pending";
             try {
               const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
-              await client.connect();
+              let client= await opendb();
               await client.query(queryText, [stripesession.id,r,a,status]);
               await client.end();
             } catch (e) {
                 console.log(e);
-                res.send("101 - Error storing payment request");
+                errorMessage(res,"101 - Error storing payment request");
                 return;
             }
             //USDT or USDT
             if(p=='USDC' || p=='USDT'){
                 if(v=="modal")
-                    res.send(read_file("html/usdstablemodal.html"));
+                    res.status(200).send(read_file("html/usdstablemodal.html"));
                 else
-                    res.send(read_file("html/usdstable.html"));                
+                    res.status(200).send(read_file("html/usdstable.html"));                
             }
         }
         // sending index.html
@@ -267,11 +260,11 @@ async function mainloop(){
             try{
                 v=read_file("html/index.html");    
             }catch(e){
-                res.send("102 - Error index.html not found");
+                errorMessage(res,"102 - Error index.html not found");
                 console.log(e);
                 return;
             }
-            res.send(v);
+            res.status(200).send(v);
         }
     });
     // function to generate a payment intent and store it
@@ -302,7 +295,7 @@ async function mainloop(){
                   enabled: true,
              },});
         }catch(e){
-            res.send("103 - Error connecting to the payment gateway");
+            errorMessage(res,"103 - Error connecting to the payment gateway");
             console.log(e);
             return;
         }
@@ -311,12 +304,12 @@ async function mainloop(){
        // store the payment intent 
        const status="pending";
        try {
-              await client.connect();
+              let client = await opendb();
               const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
               await client.query(queryText, [paymentIntent.id,r,(a/100),status]);
               await client.end();
        } catch (e) {
-           res.send("104 - Error storing payment request");
+           errorMessage(res,"104 - Error storing payment request");
            console.log(e);
            return;
        }
@@ -332,74 +325,77 @@ async function mainloop(){
         let amount=req.query.amount;
         if(typeof token === 'undefined'){
             let v="ERROR - token is mandatory";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(token !="USDT" && token !="USDC"){
             let v="ERROR - Not supported token";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(typeof referenceid === 'undefined'){
             let v="ERROR - referenceid is mandatory";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(typeof sender === 'undefined'){
             let v="ERROR - sender is mandatory";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(typeof recipient === 'undefined'){
             let v="ERROR - recipient is mandatory";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(typeof originaddress === 'undefined'){
             let v="ERROR - originaddress is mandatory";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(typeof amount === 'undefined'){
             let v="ERROR - amount is mandatory";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
          if(amount<=0){
             let v="ERROR - amount must be > 0";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(typeof chainid=== 'undefined'){
             let v="ERROR - chainid is mandatory";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         if(chainid<=0){
             let v="ERROR - chainid is wrong, must be > 0";
-            res.send(v);
+            errorMessage(res,v);
             console.log(v);
             return;
         }
         // check for the same referenceid already present
         let rs;
+        let client;
         try{
-            await client.connect();
+            client=await opendb();
             const queryText="SELECT * from paymentrequests where referenceid=$1";
             rs=await client.query(queryText, [referenceid]);
+            
             //console.log(rs);
         } catch (e) {
-                res.send("105 - Error checking payment requests");
                 console.log(e);
+                errorMessage(res,"105 - Error checking payment requests");
+                await client.end();
                 return;
         }
         // read last block hash
@@ -407,8 +403,9 @@ async function mainloop(){
         try{
             blockhash = await api.query.system.parentHash();
         } catch(e){
-            res.send("115 - Error reading block hash");
+            errorMessage(res,"115 - Error reading block hash");
             console.log(e);
+            await client.end();
             return;
         }
         // insert new record            
@@ -420,11 +417,12 @@ async function mainloop(){
               await client.query(queryText, [referenceid,token,sender,recipient,amount,originaddress,parseInt(chainid),blockhash.toString()]);
               await client.end();
             } catch (e) {
-                res.send("107 - Error storing payment request");
+                errorMessage(res,"107 - Error storing payment request");
                 console.log(e);
+                await client.end();
                 return;
             }
-            res.send('{"answer":"OK","message":"payment request accepted"}');
+            res.status(200).send('{"answer":"OK","message":"payment request accepted"}');
             return;
         }
         else {
@@ -436,10 +434,12 @@ async function mainloop(){
                 rs.rows[0].amount==amount &&
                 rs.rows[0].originaddress==originaddress &&
                 rs.rows[0].chaind==parseInt(chainid)){
-                    res.send('{"answer":"OK","message":"payment request accepted"}');
+                    res.status(200).send('{"answer":"OK","message":"payment request accepted"}');
+                    await client.end();
                     return;
             } else {
-                res.send('{"answer":"KO","message":"payment request is preent with different data, cannot be changed for a while"}');
+                errorMessage(res,"payment request is present with different data, cannot be changed for a while");
+                await client.end();
                 return;
             }
         }
@@ -474,4 +474,29 @@ function read_file(name) {
         console.error(err);
         return (undefined);
     }
+}
+// function to open db and return client
+async function opendb(){
+        let client = new Client({
+            host: PGHOST,
+            database: PGDATABASE,
+            user: PGUSER,
+            password: PGPASSWORD,
+        });
+        await client.connect();
+        return(client);
+}
+//function to send an error message in json format
+async function errorMessage(res,msg){
+    let j={
+        answer: "KO",
+        message: msg
+    };
+    try{
+        await res.status(200).send(JSON.stringify(j));
+    }catch(e){
+        console.log(e);
+        return(false);
+    }
+    return(true);
 }

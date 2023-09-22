@@ -4,61 +4,192 @@ const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
-// read environment variables
-const TOKENADDRESS = process.env.TOKENADDRESS;
-if (typeof TOKENADDRESS==='undefined'){
-    console.log("TOKENADDRESS variable is not set, please set it for launching the validator. It's the address of the the token to validate");
-    process.exit();
-}
-const ABI = process.env.ABI;
-if (typeof ABI==='undefined'){
-    console.log("ABI variable is not set, please set it for launching the validator. It's the file where to read the ABI of the contract");
-    process.exit();
-}
-const ABIJSON=fs.readFileSync(ABI,"ascii");
-//console.log("ABIJSON: ",ABIJSON);
-const WALLETADDRESS = process.env.WALLETADDRESS;
-if (typeof WALLETADDRESS==='undefined'){
-    console.log("WALLETADDRESS variable is not set, please set it for launching the validator. It's the address of the the recipient wallet");
-    process.exit();
-}
-const BLOCKCHAIN = process.env.BLOCKCHAIN;
-if (typeof BLOCKCHAIN==='undefined'){
-    console.log("BLOCKCHAIN variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const BLOCKCHAINCODE = process.env.BLOCKCHAINCODE;
-if (typeof BLOCKCHAINCODE==='undefined'){
-    console.log("BLOCKCHAINCODE variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const MNEMONIC = process.env.MNEMONIC;
-if (typeof MNEMONIC==='undefined'){
-    console.log("MNEMONIC variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const SUBSTRATECHAIN = process.env.SUBSTRATECHAIN;
-if (typeof SUBSTRATECHAIN=='=undefined'){
-    console.log("SUBSTRATECHAIN variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const BLOCKSCONFIRMATION = process.env.BLOCKSCONFIRMATION;
-if (typeof BLOCKSCONFIRMATION=='=undefined'){
-    console.log("BLOCKSCONFIRMATION variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const MINVALIDATIONS = process.env.MINVALIDATIONS;
-if (typeof MINVALIDATIONS=='=undefined'){
-    console.log("MINVALIDATIONS variable is not set, please set it for launching the validator");
-    process.exit();
-}
-//console.log(BLOCKCHAIN);
-// connect EVM blockchain
-const web3 = new Web3(BLOCKCHAIN || "ws://localhost:8545");
-console.log("Payment Validator v.1.01 - Listening for new events on token ", TOKENADDRESS," for wallet: ",WALLETADDRESS);
+// add crypto modules
+const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
+const { Buffer } = require('node:buffer');
+const { readFileSync } = require('node:fs');
+const prompt = require('prompt-sync')();
+
+// GLOBAL VARIABLES
+let BLOCKCHAIN;
+let BLOCKCHAINCODE;
+let SUBSTRATECHAIN;
+let MNEMONIC;
+let BLOCKSCONFIRMATION;
+let MINVALIDATIONS;
+let TOKENADDRESS;
+let ABI;
+let ABIJSON;
+let WALLETADDRESS;
+let PGUSER;
+let PGPASSWORD;
+let PGHOST;
+let PGDATABASE;
 // execute a main loop for async oeprations
 mainloop();
 async function mainloop(){
+    const ENCRYPTEDCONF = process.env.ENCRYPTEDCONF;
+    if (typeof ENCRYPTEDCONF!=='undefined'){
+        let fc;
+        // read file
+        try {
+             fc=readFileSync(ENCRYPTEDCONF);
+        }catch(e){
+            console.log("ERROR reading file",ENCRYPTEDCONF,e);
+            return;
+        }
+        let pwd=prompt("Password to decrypt the configuration:",{echo: ''});
+        //decrypt
+        let cleartextuint8= await decrypt_symmetric(fc,pwd);
+        if(cleartextuint8==false){
+            console.log("ERROR: decryption failed, password may be wrong");
+            return;
+        }
+        let cleartext = Buffer.from(cleartextuint8).toString();
+        const conf=JSON.parse(cleartext);
+        //load the variables from the decrypted json
+        TOKENADDRESS = conf.TOKENADDRESS;
+        if (typeof TOKENADDRESS==='undefined'){
+            console.log("TOKENADDRESS variable is not set, please set it for launching the validator. It's the address of the the token to validate");
+            process.exit();
+        }
+        ABI = conf.ABI;
+        if (typeof ABI==='undefined'){
+            console.log("ABI variable is not set, please set it for launching the validator. It's the file where to read the ABI of the contract");
+            process.exit();
+        }
+        ABIJSON=fs.readFileSync(ABI,"ascii");
+        WALLETADDRESS = conf.WALLETADDRESS;
+        if (typeof WALLETADDRESS==='undefined'){
+            console.log("WALLETADDRESS variable is not set, please set it for launching the validator. It's the address of the the recipient wallet");
+            process.exit();
+        }
+        BLOCKCHAIN = conf.BLOCKCHAIN;
+        if (typeof BLOCKCHAIN==='undefined'){
+            console.log("BLOCKCHAIN variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        BLOCKCHAINCODE = conf.BLOCKCHAINCODE;
+        if (typeof BLOCKCHAINCODE==='undefined'){
+            console.log("BLOCKCHAINCODE variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        MNEMONIC = conf.MNEMONIC;
+        if (typeof MNEMONIC==='undefined'){
+            console.log("MNEMONIC variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        SUBSTRATECHAIN = conf.SUBSTRATECHAIN;
+        if (typeof SUBSTRATECHAIN=='=undefined'){
+            console.log("SUBSTRATECHAIN variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        BLOCKSCONFIRMATION = conf.BLOCKSCONFIRMATION;
+        if (typeof BLOCKSCONFIRMATION=='=undefined'){
+            console.log("BLOCKSCONFIRMATION variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        MINVALIDATIONS = conf.MINVALIDATIONS;
+        if (typeof MINVALIDATIONS=='=undefined'){
+            console.log("MINVALIDATIONS variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        //database vars
+        PGUSER = conf.PGUSER;
+        if (typeof PGUSER==='undefined'){
+            console.log("PGUSER variable is not set, please set it");
+            process.exit();
+        }
+        PGPASSWORD = conf.PGPASSWORD;
+        if (typeof PGPASSWORD==='undefined'){
+            console.log("PGPASSWORD variable is not set, please set it");
+            process.exit();
+        }
+        PGHOST = conf.PGHOST;
+        if (typeof PGHOST==='undefined'){
+            console.log("PGHOST variable is not set, please set it");
+            process.exit();
+        }
+        PGDATABASE = conf.PGDATABASE;
+        if (typeof PGDATABASE==='undefined'){
+            console.log("PGDATABASE variable is not set, please set it");
+            process.exit();
+        }
+        
+    } else {
+        //if the encryption configuration is not available, try to load the configuration from from env variables
+        TOKENADDRESS = process.env.TOKENADDRESS;
+        if (typeof TOKENADDRESS==='undefined'){
+            console.log("TOKENADDRESS variable is not set, please set it for launching the validator. It's the address of the the token to validate");
+            process.exit();
+        }
+        ABI = process.env.ABI;
+        if (typeof ABI==='undefined'){
+            console.log("ABI variable is not set, please set it for launching the validator. It's the file where to read the ABI of the contract");
+            process.exit();
+        }
+        ABIJSON=fs.readFileSync(ABI,"ascii");
+        WALLETADDRESS = process.env.WALLETADDRESS;
+        if (typeof WALLETADDRESS==='undefined'){
+            console.log("WALLETADDRESS variable is not set, please set it for launching the validator. It's the address of the the recipient wallet");
+            process.exit();
+        }
+        BLOCKCHAIN = process.env.BLOCKCHAIN;
+        if (typeof BLOCKCHAIN==='undefined'){
+            console.log("BLOCKCHAIN variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        BLOCKCHAINCODE = process.env.BLOCKCHAINCODE;
+        if (typeof BLOCKCHAINCODE==='undefined'){
+            console.log("BLOCKCHAINCODE variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        MNEMONIC = process.env.MNEMONIC;
+        if (typeof MNEMONIC==='undefined'){
+            console.log("MNEMONIC variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        SUBSTRATECHAIN = process.env.SUBSTRATECHAIN;
+        if (typeof SUBSTRATECHAIN=='=undefined'){
+            console.log("SUBSTRATECHAIN variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        BLOCKSCONFIRMATION = process.env.BLOCKSCONFIRMATION;
+        if (typeof BLOCKSCONFIRMATION=='=undefined'){
+            console.log("BLOCKSCONFIRMATION variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        MINVALIDATIONS = process.env.MINVALIDATIONS;
+        if (typeof MINVALIDATIONS=='=undefined'){
+            console.log("MINVALIDATIONS variable is not set, please set it for launching the validator");
+            process.exit();
+        }
+        //database vars
+        PGUSER = process.env.PGUSER;
+        if (typeof PGUSER==='undefined'){
+            console.log("PGUSER variable is not set, please set it");
+            process.exit();
+        }
+        PGPASSWORD = process.env.PGPASSWORD;
+        if (typeof PGPASSWORD==='undefined'){
+            console.log("PGPASSWORD variable is not set, please set it");
+            process.exit();
+        }
+        PGHOST = process.env.PGHOST;
+        if (typeof PGHOST==='undefined'){
+            console.log("PGHOST variable is not set, please set it");
+            process.exit();
+        }
+        PGDATABASE = process.env.PGDATABASE;
+        if (typeof PGDATABASE==='undefined'){
+            console.log("PGDATABASE variable is not set, please set it");
+            process.exit();
+        }
+
+    }
+    // connect EVM blockchain
+    const web3 = new Web3(BLOCKCHAIN || "ws://localhost:8545");
+    console.log("Payment Validator v.1.01 - Listening for new events on token ", TOKENADDRESS," for wallet: ",WALLETADDRESS);
     //connect BITGREEN CHAIN
     const wsProvider = new WsProvider(SUBSTRATECHAIN);
     const api = await ApiPromise.create({ provider: wsProvider });
@@ -74,6 +205,7 @@ async function mainloop(){
     ]);
     console.log("decimals: ",decimals);
     console.log("symbol: ",symbol);
+    //subscribe to events to token address
     var subscription = web3.eth.subscribe('logs', {
         address: TOKENADDRESS,
         topics: [web3.utils.sha3('Transfer(address,address,uint256)')]}
@@ -108,9 +240,10 @@ async function mainloop(){
             // get orderid
             let orderid=1;
             let amount=0;
-            let client = new Client();
+            let client;
+            //connect to the db
             try {
-                await client.connect();
+                client=await opendb();
             }catch(e){	
              console.log("100 - ERROR",e);
              return;
@@ -118,14 +251,12 @@ async function mainloop(){
             try {
                 const queryText="SELECT * from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
                 amount=transaction['value']/1000000;
-                //console.log([transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
                 rs=await client.query(queryText, [transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
                 if(rs['rowCount']==0){
                     console.log("101 - ERROR referenceid not found");
                     await client.end();
                     return;
                 }
-                //console.log(rs);
             } catch (e) {
                 console.log("102 - ERROR",e);
                 await client.end();
@@ -209,7 +340,7 @@ async function mainloop(){
             }
             
             //validate orders on Substrate
-            validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api);
+            validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api,client);
             await client.end();
             return;
             
@@ -219,7 +350,7 @@ async function mainloop(){
     });
 }
 // function to submit the transaction to the blockchain
-async function validate_payment(orderid,blockchainid,tx,keys,api){
+async function validate_payment(orderid,blockchainid,tx,keys,api,client){
     let ao=[];
     if(orderid.search(",")==-1)
         ao.push(orderid);
@@ -235,6 +366,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
               await client.query(queryText, [keys.address,ao[x],tx,blockchainid]);
             } catch (e) {
                 console.log("107 - ERROR",e);
+                await client.end();
                 return;
             } 
         }else{
@@ -247,6 +379,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,api){
                 	console.log("Validation submitted tx: ",hash.toHex());
                 }catch(e){
                     console.log("108 - ERROR",e);
+                    await client.end();
                     return;
                 }
         }
@@ -288,4 +421,15 @@ async function compute_total_order(orderid,api){
         tot=tot+amount/100;        
     }
     return(tot);
+}
+// function to open db and return client
+async function opendb(){
+        let client = new Client({
+            host: PGHOST,
+            database: PGDATABASE,
+            user: PGUSER,
+            password: PGPASSWORD,
+        });
+        await client.connect();
+        return(client);
 }
