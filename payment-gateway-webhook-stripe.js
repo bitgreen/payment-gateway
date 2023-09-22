@@ -4,44 +4,149 @@ const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
-console.log("Starting.....");
-const SUBSTRATECHAIN = process.env.SUBSTRATECHAIN;
-if (typeof SUBSTRATECHAIN==='undefined'){
-    console.log("SUBSTRATECHAIN variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const MNEMONIC = process.env.MNEMONIC;
-if (typeof MNEMONIC==='undefined'){
-    console.log("MNEMONIC variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const MNEMONIC2 = process.env.MNEMONIC2;
-if (typeof MNEMONIC2==='undefined'){
-    console.log("MNEMONIC2 variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const STRIPEAPIKEY = process.env.STRIPEAPIKEY;
-if (typeof STRIPEAPIKEY==='undefined'){
-    console.log("STRIPEAPIKEY variable is not set, please set it for launching the validator");
-    process.exit();
-}
-const STRIPESIGKEY = process.env.STRIPESIGKEY;
-if (typeof STRIPESIGKEY==='undefined'){
-    console.log("STRIPESIGKEY variable is not set, please set it for launching the validator");
-    process.exit();
-}
+// add crypto module
+const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
+const { Buffer } = require('node:buffer');
+const { readFileSync } = require('node:fs');
+const prompt = require('prompt-sync')();
+//global vars
+let SUBSTRATECHAIN;
+let MNEMONIC;
+let MNEMONIC2;
+let STRIPEAPIKEY;
+let STRIPESIGKEY;
+let PGUSER;
+let PGPASSWORD;
+let PGHOST;
+let PGDATABASE;
 
-const stripe = require('stripe')(STRIPEAPIKEY);
-
-console.log("Setting up Express server");
-const express = require('express');
-const app=express();
-
-console.log("Payment Validator fo Stripe v.1.01 - Webhooks Server");
 // we execute the main loop in an async function
 mainloop();
 
-async function mainloop(){
+// main loop body
+async function mainloop() {
+  console.log("Starting.....");
+  const ENCRYPTEDCONF=process.env.ENCRYPTEDCONF;
+  if (typeof ENCRYPTEDCONF!=='undefined'){
+        let fc;
+        // read file
+        try {
+             fc=readFileSync(ENCRYPTEDCONF);
+        }catch(e){
+            console.log("ERROR reading file",ENCRYPTEDCONF,e);
+            return;
+        }
+        let pwd=prompt("Password to decrypt the configuration:",{echo: ''});
+        //decrypt
+        let cleartextuint8= await decrypt_symmetric(fc,pwd);
+        if(cleartextuint8==false){
+            console.log("ERROR: decryption failed, password may be wrong");
+            return;
+        }
+        let cleartext = Buffer.from(cleartextuint8).toString();
+        const conf=JSON.parse(cleartext);
+        SUBSTRATECHAIN = conf.SUBSTRATECHAIN;
+        if (typeof SUBSTRATECHAIN==='undefined'){
+        console.log("SUBSTRATECHAIN variable is not set, please set it");
+            process.exit();
+        }
+        MNEMONIC = conf.MNEMONIC;
+        if (typeof MNEMONIC==='undefined'){
+            console.log("MNEMONIC variable is not set, please set it");
+            process.exit();
+        }
+        MNEMONIC2 = conf.MNEMONIC2;
+        if (typeof MNEMONIC2==='undefined'){
+            console.log("MNEMONIC2 variable is not set, please set it");
+            process.exit();
+        }
+        STRIPEAPIKEY = conf.STRIPEAPIKEY;
+        if (typeof STRIPEAPIKEY==='undefined'){
+            console.log("STRIPEAPIKEY variable is not set, please set it");
+            process.exit();
+        }
+        STRIPESIGKEY = conf.STRIPESIGKEY;
+        if (typeof STRIPESIGKEY==='undefined'){
+            console.log("STRIPESIGKEY variable is not set, please set it");
+            process.exit();
+        }
+        //database vars
+        PGUSER = conf.PGUSER;
+        if (typeof PGUSER==='undefined'){
+            console.log("PGUSER variable is not set, please set it");
+            process.exit();
+        }
+        PGPASSWORD = conf.PGPASSWORD;
+        if (typeof PGPASSWORD==='undefined'){
+            console.log("PGPASSWORD variable is not set, please set it");
+            process.exit();
+        }
+        PGHOST = conf.PGHOST;
+        if (typeof PGHOST==='undefined'){
+            console.log("PGHOST variable is not set, please set it");
+            process.exit();
+        }
+        PGDATABASE = conf.PGDATABASE;
+        if (typeof PGDATABASE==='undefined'){
+            console.log("PGDATABASE variable is not set, please set it");
+            process.exit();
+        }
+  } else {
+        SUBSTRATECHAIN = process.env.SUBSTRATECHAIN;
+        if (typeof SUBSTRATECHAIN==='undefined'){
+        console.log("SUBSTRATECHAIN variable is not set, please set it");
+            process.exit();
+        }
+        MNEMONIC = process.env.MNEMONIC;
+        if (typeof MNEMONIC==='undefined'){
+            console.log("MNEMONIC variable is not set, please set it");
+            process.exit();
+        }
+        MNEMONIC2 = process.env.MNEMONIC2;
+        if (typeof MNEMONIC2==='undefined'){
+            console.log("MNEMONIC2 variable is not set, please set it");
+            process.exit();
+        }
+        STRIPEAPIKEY = process.env.STRIPEAPIKEY;
+        if (typeof STRIPEAPIKEY==='undefined'){
+            console.log("STRIPEAPIKEY variable is not set, please set it");
+            process.exit();
+        }
+        STRIPESIGKEY = process.env.STRIPESIGKEY;
+        if (typeof STRIPESIGKEY==='undefined'){
+            console.log("STRIPESIGKEY variable is not set, please set it");
+            process.exit();
+        }
+        //database vars
+        PGUSER = process.env.PGUSER;
+        if (typeof PGUSER==='undefined'){
+            console.log("PGUSER variable is not set, please set it");
+            process.exit();
+        }
+        PGPASSWORD = process.env.PGPASSWORD;
+        if (typeof PGPASSWORD==='undefined'){
+            console.log("PGPASSWORD variable is not set, please set it");
+            process.exit();
+        }
+        PGHOST = process.env.PGHOST;
+        if (typeof PGHOST==='undefined'){
+            console.log("PGHOST variable is not set, please set it");
+            process.exit();
+        }
+        PGDATABASE = process.env.PGDATABASE;
+        if (typeof PGDATABASE==='undefined'){
+            console.log("PGDATABASE variable is not set, please set it");
+            process.exit();
+        }
+  }
+  // create stripe object
+  const stripe = require('stripe')(STRIPEAPIKEY);
+  // setup express server
+  console.log("Setting up Express server");
+  const express = require('express');
+  const app=express();
+  console.log("Payment Validator fo Stripe v.1.01 - Webhooks Server");
+
   //connect BITGREEN CHAIN
   const wsProvider = new WsProvider(SUBSTRATECHAIN);
   const api = await ApiPromise.create({ provider: wsProvider });
@@ -51,9 +156,6 @@ async function mainloop(){
   const keyring2 = new Keyring({ type: 'sr25519' });
   let keys2=keyring2.createFromUri(MNEMONIC2);
   console.log("Validator Address: ",keys2.address);
-  const client = new Client();
-  // connecting to database
-  //await client.connect();
   // Match the raw body to content type application/json
   app.post('/webhook', express.raw({type: 'application/json'}), async function (request, response) {
     //const event = request.body;
@@ -76,7 +178,7 @@ async function mainloop(){
         const eventv = await stripe.events.retrieve(event.id);
         //TODO: check "livemode" should be true (now we accept from sandbox)
         const pi = eventv.data.object;      
-        await client.connect();
+        let client=await opendb();
         // search for the matching payment request
         let rs;
         try{
@@ -118,7 +220,7 @@ async function mainloop(){
             return;
         }
         // store the payment received
-        await store_orders_paid(rs.rows[0]['referenceid'],api,client,pi.currency,rs.rows[0]['stripeid']);
+        await store_orders_paid(rs.rows[0]['referenceid'],api,client,pi.currency,rs.rows[0]['stripeid'],client);
          
         // validate the payment on bitgreen blockchain
         await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api,event);
@@ -221,7 +323,7 @@ async function compute_total_order(orderid,api){
 }
 
 //function to store the orders paid in the database for future settlement
-async function store_orders_paid(orderid,api,client,token,stripeid){
+async function store_orders_paid(orderid,api,client,token,stripeid,client){
     let ao=[];
     if(orderid.search(",")==-1)
         ao.push(orderid);
@@ -307,4 +409,16 @@ function isObjectEqual(object1, object2) {
 }
 function isObject(object) {
   return object != null && typeof object === 'object';
+}
+
+// function to open db and return client
+async function opendb(){
+        let client = new Client({
+            host: PGHOST,
+            database: PGDATABASE,
+            user: PGUSER,
+            password: PGPASSWORD,
+        });
+        await client.connect();
+        return(client);
 }
