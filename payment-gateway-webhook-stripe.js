@@ -4,6 +4,8 @@ const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
+const deepEqual = require('deep-equal')
+
 // add crypto module
 const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
 const { Buffer } = require('node:buffer');
@@ -19,6 +21,7 @@ let PGUSER;
 let PGPASSWORD;
 let PGHOST;
 let PGDATABASE;
+let stripe;
 
 // we execute the main loop in an async function
 mainloop();
@@ -140,7 +143,7 @@ async function mainloop() {
         }
   }
   // create stripe object
-  const stripe = require('stripe')(STRIPEAPIKEY);
+  stripe = require('stripe')(STRIPEAPIKEY);
   // setup express server
   console.log("Setting up Express server");
   const express = require('express');
