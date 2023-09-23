@@ -4,11 +4,7 @@ const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
-// add crypto modules
-const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
-const { Buffer } = require('node:buffer');
-const { readFileSync } = require('node:fs');
-const prompt = require('prompt-sync')();
+
 
 // GLOBAL VARIABLES
 let BLOCKCHAIN;
@@ -25,6 +21,7 @@ let PGUSER;
 let PGPASSWORD;
 let PGHOST;
 let PGDATABASE;
+let api;
 // execute a main loop for async oeprations
 mainloop();
 async function mainloop(){
@@ -192,7 +189,7 @@ async function mainloop(){
     console.log("Payment Validator v.1.01 - Listening for new events on token ", TOKENADDRESS," for wallet: ",WALLETADDRESS);
     //connect BITGREEN CHAIN
     const wsProvider = new WsProvider(SUBSTRATECHAIN);
-    const api = await ApiPromise.create({ provider: wsProvider });
+    api = await ApiPromise.create({ provider: wsProvider });
     const keyring = new Keyring({ type: 'sr25519' });
     let keys=keyring.createFromUri(MNEMONIC);
     console.log("Validator Address: ",keys.address);
@@ -340,7 +337,7 @@ async function mainloop(){
             }
             
             //validate orders on Substrate
-            validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,api,client);
+            validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,client);
             await client.end();
             return;
             
@@ -350,7 +347,7 @@ async function mainloop(){
     });
 }
 // function to submit the transaction to the blockchain
-async function validate_payment(orderid,blockchainid,tx,keys,api,client){
+async function validate_payment(orderid,blockchainid,tx,keys,client){
     let ao=[];
     if(orderid.search(",")==-1)
         ao.push(orderid);
@@ -370,13 +367,11 @@ async function validate_payment(orderid,blockchainid,tx,keys,api,client){
                 return;
             } 
         }else{
-                const noncev = await api.rpc.system.accountNextIndex(keys.address);
-                const noncen=Number(noncev.toHuman())+1;
                 try{
-                	const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
-                	// Sign and send the transaction using our account with nonce to consider the queue
-                	const hash = await validate.signAndSend(keys,{ nonce:noncen });
-                	console.log("Validation submitted tx: ",hash.toHex());
+                    const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+                    // Sign and send the transaction using our account with nonce to consider the queue
+                    const hash = await validate.signAndSend(keys,{ nonce: -1 });
+                    console.log("Validation submitted tx: ",hash.toHex());
                 }catch(e){
                     console.log("108 - ERROR",e);
                     await client.end();
