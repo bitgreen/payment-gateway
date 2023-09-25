@@ -211,3 +211,28 @@ Optionally, the details of the products in purchase can be shown with the follow
 dp=[{"id":"001","desc":"product 001","qnt":1,"price":100.00,"currency":"USDT"},{"id":"002","desc":"product 002","qnt":2,"price":150.00,"currency":"USDT"}]
 ```
 
+## Encrypted Configuration
+For enhanced security, you can  the configuration completely encrypted on disk.
+To configuration ahs to be prepare in json files:  
+- payment-gateway.env.json
+- payment-validator.env.json
+- payment-gateway-webhook.env.json
+See the examples in this repo for the format.
+Encrypt the configuration using the following commands:  
+```bash
+node encrypte-file.js filename
+```
+for example:
+```bash
+node encrypte-file.js payment-gateway.env.json
+```
+Please insert a strong password and at the confirmation, a new encrypted file ".enc. will be created.  
+The file shall be "exported" as ENCRYPTEDCONF, for example:  
+```bash
+export ENCRYPTEDCONF="payment-gateway.env.json.enc"
+node /usr/src/payment-gateway/payment-gateway.js
+```
+the same procedure is applicable to the following services:  
+- payment-gateway.js
+- payment-gateway-webhook-server.js
+- payment-validator.js
