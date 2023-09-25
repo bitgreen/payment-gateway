@@ -4,7 +4,6 @@ const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
-const deepEqual = require('deep-equal')
 
 // add crypto module
 const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
@@ -229,8 +228,6 @@ async function mainloop() {
         await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api,event);
         //close db connection
         await client.end();        
-        // update the paymentrequest (striperequest table accordingly)
-        // TODO
         break;
       case 'payment_method.attached':
         const paymentMethod = event.data.object;
@@ -266,6 +263,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
 	    console.log("105 - ERROR",e);
 	    return;
 	}
+	//
 	let eventv;
 	// query back stripe for the same transaction and make a second confirmation
 	try{
@@ -274,7 +272,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
             console.log("106 - ERROR",e);
             return;
         }
-        if(isObjectEqual(event,eventv)){
+        if(event.id==eventv.id){
             //console.log("ao[x]",ao[x],blockchainid,tx)	
             try{
                 const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
@@ -285,7 +283,10 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
                  console.log("107 - ERROR",e);
                  return;
             }
+        }else {
+            console.log("Second confirmation failed");
         }
+        
     }
 }
 
@@ -387,33 +388,6 @@ async function store_orders_paid(orderid,api,client,token,stripeid,client){
     }
     return(tot);
 }
-//function to evaluate if 2 objects are equal
-function isObjectEqual(object1, object2) {
-  const keys1 = Object.keys(object1);
-  const keys2 = Object.keys(object2);
-
-  if (keys1.length !== keys2.length) {
-    return false;
-  }
-
-  for (const key of keys1) {
-    const val1 = object1[key];
-    const val2 = object2[key];
-    const areObjects = isObject(val1) && isObject(val2);
-    if (
-      areObjects && !deepEqual(val1, val2) ||
-      !areObjects && val1 !== val2
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
-function isObject(object) {
-  return object != null && typeof object === 'object';
-}
-
 // function to open db and return client
 async function opendb(){
         let client = new Client({
