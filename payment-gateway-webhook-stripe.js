@@ -249,14 +249,14 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
         ao.push(orderid);
     else
         ao=orderid.split(",");
-    for(x in ao){
-        if(ao[x].length==0)
+    for(x of ao){
+        if(x.length==0)
             continue;
-        console.log("ao[x]",ao[x],blockchainid,tx)
+        console.log("x",x,blockchainid,tx)
 
 	// Sign and send the transaction using our account with nonce to consider the queue
 	try{
-            const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+            const validate = api.tx.dex.validateBuyOrder(x,blockchainid,tx);
             const hash = await validate.signAndSend(keys,{ nonce: -1 });
             console.log("Validation submitted tx: ",hash.toHex());
 	}catch(e){
@@ -273,9 +273,8 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
             return;
         }
         if(event.id==eventv.id){
-            //console.log("ao[x]",ao[x],blockchainid,tx)	
             try{
-                const validate2 = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+                const validate2 = api.tx.dex.validateBuyOrder(x,blockchainid,tx);
                 // Sign and send the transaction using our account
                 const hash2 = await validate2.signAndSend(keys2,{ nonce: -1 });
                 console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
@@ -299,13 +298,12 @@ async function compute_total_order(orderid,api){
         ao=orderid.split(",");
     //console.log(ao);
     let tot=0.0;
-    for(x in ao){
-        if(ao[x].length==0)
+    for(x of ao){
+        if(x.length==0)
             continue;
-        //console.log("ao[x]",ao[x]);
         let v;
         try{
-            const d = await api.query.dex.buyOrders(ao[x]);
+            const d = await api.query.dex.buyOrders(x);
             v=d.toHuman();
         }catch(e){
             console.log("108 - ERROR",e);
@@ -335,13 +333,12 @@ async function store_orders_paid(orderid,api,client,token,stripeid,client){
         ao=orderid.split(",");
     //console.log(ao);
     let tot=0.0;
-    for(x in ao){
-        if(ao[x].length==0)
+    for(x of ao){
+        if(x.length==0)
             continue;
-        console.log("ao[x]",ao[x]);
         let v;
         try{
-            const d = await api.query.dex.buyOrders(ao[x]);
+            const d = await api.query.dex.buyOrders(x);
             v=d.toHuman();
         }catch(e){
             console.log("110 - ERROR",e);

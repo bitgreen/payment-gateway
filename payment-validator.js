@@ -353,14 +353,14 @@ async function validate_payment(orderid,blockchainid,tx,keys,client){
         ao.push(orderid);
     else
         ao=orderid.split(",");
-    for(x in ao){
-        if(ao[x].length==0)
+    for(x of ao){
+        if(x.length==0)
             continue;
         if(BLOCKSCONFIRMATION>1){
             //store in the queue
             try {
               const queryText = 'INSERT INTO validationsqueue(validatoraddress,buyorderid,txhash,chainid) values($1,$2,$3,$4)';
-              await client.query(queryText, [keys.address,ao[x],tx,blockchainid]);
+              await client.query(queryText, [keys.address,x,tx,blockchainid]);
             } catch (e) {
                 console.log("107 - ERROR",e);
                 await client.end();
@@ -368,7 +368,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,client){
             } 
         }else{
                 try{
-                    const validate = api.tx.dex.validateBuyOrder(ao[x],blockchainid,tx);
+                    const validate = api.tx.dex.validateBuyOrder(x,blockchainid,tx);
                     // Sign and send the transaction using our account with nonce to consider the queue
                     const hash = await validate.signAndSend(keys,{ nonce: -1 });
                     console.log("Validation submitted tx: ",hash.toHex());
@@ -389,12 +389,12 @@ async function compute_total_order(orderid,api){
         ao=orderid.split(",");
     console.log("orders to check:",ao);
     let tot=0.0;
-    for(x in ao){
-        if(ao[x].length==0)
+    for(x of ao){
+        if(x.length==0)
             continue;
         let v;
         try{
-            const d = await api.query.dex.buyOrders(ao[x]);
+            const d = await api.query.dex.buyOrders(x);
             v=d.toHuman();
         }catch(e){
             console.log("109 - ERROR",e);
