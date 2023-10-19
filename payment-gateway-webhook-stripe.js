@@ -180,7 +180,7 @@ async function mainloop() {
           let clientf=await opendb();
           try{
               const queryText="update striperequests set status='failed',statusmessage=$1 where stripeid=$2";
-              rs=await clientf.query(queryText, [message,pi.id]);
+              await clientf.query(queryText, [message,intent.id]);
           } catch (e) {
               console.log("101 - ERROR",e);
               response.json({received: true});
@@ -201,7 +201,7 @@ async function mainloop() {
         let rs;
         try{
 
-          const queryText="SELECT * from striperequests where status='pending' and stripeid=$1";
+          const queryText="SELECT * from striperequests where stripeid=$1";
           rs=await client.query(queryText, [pi.id]);
           //console.log(rs);
         } catch (e) {
