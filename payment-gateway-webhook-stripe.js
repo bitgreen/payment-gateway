@@ -173,6 +173,22 @@ async function mainloop() {
     }
     // Handle the event
     switch (event.type) {
+      case 'payment_intent.payment_failed':
+          intent = event.data.object;
+          const message = intent.last_payment_error && intent.last_payment_error.message;
+          console.log('Payment Failed:', intent.id, message);
+          let clientf=await opendb();
+          try{
+              const queryText="update striperequests set status='failed',statusmessage=$1 where stripeid=$2";
+              rs=await clientf.query(queryText, [message,pi.id]);
+          } catch (e) {
+              console.log("101 - ERROR",e);
+              response.json({received: true});
+              await clientf.end();
+              return;  
+          }
+          await clientf.end();
+          return;
       case 'payment_intent.succeeded':
         console.log('PaymentIntent was successful!');
         // retrieve the event from stripe for security (someone may had submitted a fake one with the correct stripe signature.
@@ -184,6 +200,7 @@ async function mainloop() {
         // search for the matching payment request
         let rs;
         try{
+
           const queryText="SELECT * from striperequests where status='pending' and stripeid=$1";
           rs=await client.query(queryText, [pi.id]);
           //console.log(rs);
@@ -206,17 +223,18 @@ async function mainloop() {
              await client.end();
              return;
          }                   
+        
         // verify amount
-        if((rs.rows[0]['amount']*100)!=pi.amount_received){
-            console.log("104 - ERROR: the payment amount does not match the order (1): ",pi.id,rs.rows[0]['amount']*100,pi.amount_received);
+        if((rs.rows[0]['amount']*100).toFixed()!=pi.amount_received){
+            console.log("104 - ERROR: the payment amount does not match the order (1): ",pi.id,(rs.rows[0]['amount']*100).toFixed(),pi.amount_received);
             response.json({received: true});
             await client.end();
             return;
         }
         // check the amount for matching on chain
          const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
-         if((totorders*100)!=pi.amount_received){
-            console.log("105 - ERROR: the payment amount does not match the orders on chain (2): ",totorders*100,pi.id,rs.rows[0]['amount'],pi.amount_received);
+         if((totorders*100).toFixed()!=pi.amount_received){
+            console.log("105 - ERROR: the payment amount does not match the orders on chain (2): ",(totorders*100).toFixed(),pi.id,rs.rows[0]['amount'],pi.amount_received);
             response.json({received: true});
             await client.end();
             return;
