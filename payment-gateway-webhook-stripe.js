@@ -239,6 +239,10 @@ async function mainloop() {
             await client.end();
             return;
         }
+        // update status on striperequests
+         const queryUpdate="update striperequests set status='completed',statusmessage='' where stripeid=$1";
+         await client.query(queryUpdate, [pi.id]);
+
         // store the payment received
         await store_orders_paid(rs.rows[0]['referenceid'],api,client,pi.currency,rs.rows[0]['stripeid'],client);
          
