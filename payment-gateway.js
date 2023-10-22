@@ -20,6 +20,7 @@ let PGUSER;
 let PGPASSWORD;
 let PGHOST;
 let PGDATABASE;
+let stripe;
 
 // call the main async function 
 mainloop();
@@ -119,7 +120,7 @@ async function mainloop(){
         }
     }
     // create strip object
-    const stripe = require('stripe')(STRIPEAPIKEY);
+    stripe = require('stripe')(STRIPEAPIKEY);
     // Polkadot.js to connect to the Substrate chain
     const { ApiPromise, WsProvider } = require('@polkadot/api');
     // rate limit middleware
@@ -296,7 +297,7 @@ async function mainloop(){
              },});
         }catch(e){
             errorMessage(res,"103 - Error connecting to the payment gateway");
-            console.log(e);
+            console.log("e",e);
             return;
         }
         // send the client secret
@@ -313,6 +314,72 @@ async function mainloop(){
            console.log(e);
            return;
        }
+    });
+    // function to get the payment status
+    app.get('/paymentstatus', async function (req, res) {
+        let referenceid=req.query.referenceid;
+        if(typeof referenceid === 'undefined'){
+            let v="ERROR - referenceid is mandatory";
+            errorMessage(res,v);
+            console.log(v);
+            return;
+        }
+        // check for the same referenceid already present
+        let rs;
+        let client;
+        let status='unknow';
+        try{
+            client=await opendb();
+            const queryText="SELECT * from striperequests where referenceid=$1";
+            rs=await client.query(queryText, [referenceid]);
+
+            //console.log(rs);
+        } catch (e) {
+                console.log(e);
+                errorMessage(res,"105 - Error checking payment requests for stripe");
+                await client.end();
+                return;
+        }
+        // status in stripe request
+        if(rs.rows.length>0){
+            status=rs.rows[0].status;
+        }
+        try{
+            const queryText="SELECT * from paymentrequests where referenceid=$1";
+            rs=await client.query(queryText, [referenceid]);
+            //console.log(rs);
+        } catch (e) {
+                console.log(e);
+                errorMessage(res,"106 - Error checking payment requests");
+                await client.end();
+                return;
+        }
+        // status in payment request
+        if(rs.rows.length>0){
+            status='pending';
+        }
+        // check paymentsreceived
+        try{
+            const queryText="SELECT * from paymentsreceived where referenceid=$1";
+            rs=await client.query(queryText, [referenceid]);
+            //console.log(rs);
+        } catch (e) {
+                console.log(e);
+                errorMessage(res,"106 - Error checking payment requests");
+                await client.end();
+                return;
+        }
+        // status in payment request
+        if(rs.rows.length>0){
+            if(rs.rows[0].nrvalidation<rs.rows[0].minvalidation)
+                status='validating';
+            if(rs.rows[0].nrvalidation>=rs.rows[0].minvalidation)
+                status='completed';
+        }
+        // send back the status found
+        res.status(200).send('{"answer":"OK","status":"'+status+'"}');
+        return;
+        
     });
     // function to store a payment request
     app.get('/paymentrequest', async function (req, res) {
