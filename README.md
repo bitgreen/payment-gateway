@@ -210,6 +210,23 @@ Optionally, the details of the products in purchase can be shown with the follow
 ```
 dp=[{"id":"001","desc":"product 001","qnt":1,"price":100.00,"currency":"USDT"},{"id":"002","desc":"product 002","qnt":2,"price":150.00,"currency":"USDT"}]
 ```
+## Payment Status
+You can get the payment status calling the endpoint:  
+```
+https://yourdomain.com/paymentstatus?referenceid=xxx
+```
+where referenceid is the reference id passed in the payment request.  
+You will get an answer in json like the following one:  
+```
+{"answer":"OK","status":"completed"}
+```
+The status can have the following values:  
+- pending
+- validating
+- failed
+- completed
+
+Where "pending" means that we are waiting for the payment, "validating" is that the payment has been received but not yet fully validated, "failed" means that a payment attempt has failed and "completed" means that the payment has been done and accepted.  
 
 ## Encrypted Configuration
 For enhanced security, you can  the configuration completely encrypted on disk.
