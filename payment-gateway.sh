@@ -11,6 +11,14 @@ export PGDATABASE='paymentgateway'
 export SUBSTRATE='wss://testnet.bitgreen.org'
 # the API key from www.stripe.com
 export STRIPEAPIKEY="_place_here_your_stripe_key"
+# the monitoring server
+export MONITORSERVER="https://monitor.bitgreen.org"
+# the ip address of the payment gateway
+export PAYMENTGATEWAYIP="167.235.78.132"
+# the ip addresses of the validators"
+export PAYMENTVALIDATORS="167.235.78.132,167.235.78.132,167.235.78.132"
+# the apii key of the monitoring system
+export MONITORAPIKEY=""
 #Change to your folder eventually
 cd /usr/src/payment-gateway
 # change the path if you are not using the same

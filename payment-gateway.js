@@ -11,6 +11,7 @@ const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
 const { Buffer } = require('node:buffer');
 const { readFileSync } = require('node:fs');
 const prompt = require('prompt-sync')();
+const fetch = require('node-fetch');
 // global vars
 let STRIPEAPIKEY;
 let SUBSTRATE;
@@ -20,6 +21,10 @@ let PGUSER;
 let PGPASSWORD;
 let PGHOST;
 let PGDATABASE;
+let MONITORSERVER;
+let PAYMENTGATEWAYIP;
+let PAYMENTVALIDATORS;
+let MONITORAPIKEY;
 let stripe;
 
 // call the main async function 
@@ -73,12 +78,20 @@ async function mainloop(){
         PGHOST = conf.PGHOST;
         if (typeof PGHOST==='undefined'){
             console.log("PGHOST variable is not set, please set it");
-            process.exit();
+     
+        process.exit();
         }
         PGDATABASE = conf.PGDATABASE;
         if (typeof PGDATABASE==='undefined'){
             console.log("PGDATABASE variable is not set, please set it");
             process.exit();
+        }
+        MONITORSERVER = conf.MONITORSERVER;
+        PAYMENTGATEWAYIP = conf.PAYMENTGATEWAYIP;
+        MONITORAPIKEY = conf.MONITORAPIKEY;
+        let PV= conf.PAYMENTVALIDATORS;
+        if (typeof PV!=='undefined'){
+            PAYMENTVALIDATORS = conf.PV.split(",");
         }
         return;
     }
@@ -117,6 +130,13 @@ async function mainloop(){
         if (typeof PGDATABASE==='undefined'){
             console.log("PGDATABASE variable is not set, please set it");
             process.exit();
+        }
+        MONITORSERVER = process.env.MONITORSERVER;
+        MONITORAPIKEY = process.env.MONITORAPIKEY;
+        PAYMENTGATEWAYIP = process.env.PAYMENTGATEWAYIP;
+        let PV= process.env.PAYMENTVALIDATORS;
+        if (typeof PV!=='undefined'){
+            PAYMENTVALIDATORS = process.env.PAYMENTVALIDATORS.split(",");
         }
     }
     // create strip object
@@ -314,6 +334,53 @@ async function mainloop(){
            console.log(e);
            return;
        }
+    });
+    // function to get the payment status
+    app.get('/paymentgatewaystatus', async function (req, res) {
+        // check for payment gateway server
+        let url=MONITORSERVER+'/bitgreen-monitor-status.php?apikey=';
+        url=url+MONITORAPIKEY;
+        url=url+'&ip='+PAYMENTGATEWAYIP;
+        console.log("url",url);
+        const response = await fetch(url);
+        let a;
+        try {
+	    for await (const chunk of response.body) {
+	        a=JSON.parse(chunk.toString());
+            }
+        } catch (err) {
+        	console.error(err.stack);
+        }
+        if(a.status=='KO'){
+            console.log("send",a);
+            res.send(a);
+        }
+        // check status of validators
+        let c=0;
+        for(v of PAYMENTVALIDATORS){
+            let url=MONITORSERVER+'/bitgreen-monitor-status.php?apikey=';
+            url=url+MONITORAPIKEY;
+            url=url+'&ip='+PAYMENTGATEWAYIP;
+            console.log("url",url);
+            const response = await fetch(url);
+            let a;
+            try {
+                for await (const chunk of response.body) {
+                    a=JSON.parse(chunk.toString());
+                }
+            } catch (err) {
+                    console.error(err.stack);
+            }
+            if(a.status=='OK'){
+                c=c+1;
+            }
+        }
+        let msg='{"status":"OK"}';
+        if(c<2){
+            msg='{"status":"KO"}';
+        }
+        console.log("send",msg);
+        res.send(msg);
     });
     // function to get the payment status
     app.get('/paymentstatus', async function (req, res) {
