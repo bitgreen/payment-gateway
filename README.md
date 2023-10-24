@@ -228,6 +228,20 @@ The status can have the following values:
 
 Where "pending" means that we are waiting for the payment, "validating" is that the payment has been received but not yet fully validated, "failed" means that a payment attempt has failed and "completed" means that the payment has been done and accepted.  
 
+## Gateway Status  
+You can check the payment gateway status by calling the following endpoint:  
+```
+https://yourdomain.com/paymentgatewaystatus
+```
+You will get an answer as follows:  
+```
+{"status":"OK"}
+```
+or in case of something not working:  
+```
+{"status":"KO"}
+```
+
 ## Encrypted Configuration
 For enhanced security, you can  the configuration completely encrypted on disk.
 To configuration ahs to be prepare in json files:  
