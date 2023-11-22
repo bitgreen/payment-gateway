@@ -272,7 +272,7 @@ async function mainloop(){
              if(orderidv.search(",")==-1)
                 ao.push(orderidv);
             else
-                ao=orderid.split(",");
+                ao=orderidv.split(",");
             for(orderid of ao){
                 // store payment data in the local database
                 let fees=0.0;
@@ -327,7 +327,7 @@ async function mainloop(){
                     // check for existing records
                     let upd=false;
                     const queryText="SELECT * from paymentsreceived where referenceid=$1";
-                    let rp=await client.query(queryText, orderid);
+                    let rp=await client.query(queryText, [orderid]);
                     if(rp['rowCount']!=0)
                         upd=true;
                     if(upd==false){
@@ -341,7 +341,7 @@ async function mainloop(){
                        await client.query(queryText, [orderid]);
                     }
                     // delete payment requests matching the payment
-                    await client.query("delete from paymentrequests where referenceid=$1",[rs.rows[0]['referenceid']]);
+                    await client.query("delete from paymentrequests where referenceid=$1",[orderid]);
                     await client.query('COMMIT WORK');            
                 }catch(e){
                     console.log("106 - ERROR",e);
