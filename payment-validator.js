@@ -266,76 +266,89 @@ async function mainloop(){
                 await client.end();
                 return;
              }
-             
-            // store payment data in the local database
-            let fees=0.0;
-            let selleraddress='';
-            let token='USDT';
-            let bov;
-            try {
-                const bo = await api.query.dex.buyOrders(rs.rows[0]['referenceid']);
-                bov=bo.toHuman();
-            }catch(e){
-                console.log("103 - ERROR",e);
-                await client.end();
-                return;
-            }
-            fees=Number(bov.totalFee.replace(",",""))/1000;
-            const assetid=bov.orderId;
-            const ai= await api.query.assets.asset(bov.assetId);
-            const aiv=ai.toHuman();
-            let header;
-            try{
-                // get last block hash
-                header = await api.rpc.chain.getHeader();
-            }catch(e){
-                console.log("104 - ERROR",e);
-                await client.end();
-                return;
-            }
-            let sellerorderv;
-            try{
-                //selleraddress=aiv.owner;
-                const sellerorder=await api.query.dex.orders(bov.orderId);
-                sellerorderv=sellerorder.toHuman();
-            }catch(e){
-                console.log("105 - ERROR",e);
-                await client.end();
-                return;
-            }
-            
-            selleraddress=sellerorderv.owner;
-            console.log("***************************************");
-            console.log("Seller address:",selleraddress);
-            console.log("***************************************");
-            try{
-                await client.query('BEGIN WORK');
-                await client.query('LOCK TABLE paymentsreceived');
-                // check for existing records
-                let upd=false;
-                const queryText="SELECT * from paymentsreceived where referenceid=$1";
-                let rp=await client.query(queryText, [rs.rows[0]['referenceid']]);
-                if(rp['rowCount']!=0)
-                    upd=true;
-                if(upd==false){
-                    // store the payment data
-                    const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
-                    let av=[rs.rows[0]['referenceid'],rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],header.hash.toHex(),MINVALIDATIONS];
-                    await client.query(queryText,av );
-                }else{
-                   //update the validation counter
-                   const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1';
-                   await client.query(queryText, [rs.rows[0]['referenceid']]);
+             //manafe multiple orders paid in one shot
+             let orderidv=rs.rows[0]['referenceid'];
+             let ao=[];
+             if(orderidv.search(",")==-1)
+                ao.push(orderidv);
+            else
+                ao=orderid.split(",");
+            for(orderid of ao){
+                // store payment data in the local database
+                let fees=0.0;
+                let selleraddress='';
+                let token='USDT';
+                let bov;
+                try {
+                    console.log("Check Buy Orders",orderid);
+                    const bo = await api.query.dex.buyOrders(orderid);
+                    bov=bo.toHuman();
+                    console.log("bov:",bov);
+                }catch(e){
+                    console.log("103 - ERROR",e);
+                    await client.end();
+                    return;
                 }
-                // delete payment requests matching the payment
-                await client.query("delete from paymentrequests where referenceid=$1",[rs.rows[0]['referenceid']]);
-                await client.query('COMMIT WORK');            
-            }catch(e){
-                console.log("106 - ERROR",e);
-                await client.end();
-                return;
-            }
+                fees=Number(bov.totalFee.replace(",",""))/1000;
+                const assetid=bov.orderId;
+                console.log("Check assetid:",assetid);
+                const ai= await api.query.assets.asset(bov.assetId);
+                const aiv=ai.toHuman();
+                console.log("ai:",ai);
+                let header;
+                try{
+                    // get last block hash
+                    header = await api.rpc.chain.getHeader();
+                }catch(e){
+                    console.log("104 - ERROR",e);
+                    await client.end();
+                    return;
+                }
+                let sellerorderv;
+                try{
+                    //selleraddress=aiv.owner;
+                    console.log("check sellerord");
+                    const sellerorder=await api.query.dex.orders(bov.orderId);
+                    sellerorderv=sellerorder.toHuman();
+                    console.log("sellerorderv",sellerorderv);
+                }catch(e){
+                    console.log("105 - ERROR",e);
+                    await client.end();
+                    return;
+                }
             
+                selleraddress=sellerorderv.owner;
+                console.log("***************************************");
+                console.log("Seller address:",selleraddress);
+                console.log("***************************************");
+                try{
+                    await client.query('BEGIN WORK');
+                    await client.query('LOCK TABLE paymentsreceived');
+                    // check for existing records
+                    let upd=false;
+                    const queryText="SELECT * from paymentsreceived where referenceid=$1";
+                    let rp=await client.query(queryText, orderid);
+                    if(rp['rowCount']!=0)
+                        upd=true;
+                    if(upd==false){
+                        // store the payment data
+                        const queryText = 'INSERT INTO paymentsreceived(referenceid,sender,recipient,amount,fees,created_on,selleraddress,token,chainid,paymentid,blockhash,nrvalidation,minvalidation) values($1,$2,$3,$4,$5,current_timestamp,$6,$7,$8,$9,$10,1,$11)';
+                        let av=[orderid,rs.rows[0]['sender'],rs.rows[0]['recipient'],amount,fees,selleraddress,token,BLOCKCHAINCODE,event['transactionHash'],header.hash.toHex(),MINVALIDATIONS];
+                        await client.query(queryText,av );
+                    }else{
+                       //update the validation counter
+                       const queryText = 'update paymentsreceived set nrvalidation=nrvalidation+1 where referenceid=$1';
+                       await client.query(queryText, [orderid]);
+                    }
+                    // delete payment requests matching the payment
+                    await client.query("delete from paymentrequests where referenceid=$1",[rs.rows[0]['referenceid']]);
+                    await client.query('COMMIT WORK');            
+                }catch(e){
+                    console.log("106 - ERROR",e);
+                    await client.end();
+                    return;
+                }
+            }
             //validate orders on Substrate
             validate_payment(rs['rows'][0]['referenceid'],BLOCKCHAINCODE,event['transactionHash'],keys,client);
             await client.end();
@@ -368,6 +381,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,client){
             } 
         }else{
                 try{
+                    console.log("Validating order");
                     const validate = api.tx.dex.validateBuyOrder(x,blockchainid,tx);
                     // Sign and send the transaction using our account with nonce to consider the queue
                     const hash = await validate.signAndSend(keys,{ nonce: -1 });
