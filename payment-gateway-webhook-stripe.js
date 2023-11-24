@@ -242,6 +242,10 @@ async function mainloop() {
         // update status on striperequests
          const queryUpdate="update striperequests set status='completed',statusmessage='' where stripeid=$1";
          await client.query(queryUpdate, [pi.id]);
+        // delete previous striperequest for the same referenceid
+        const queryUpdatep="delete from striperequests where referenceid=$1 and  status='pending'";
+        await client.query(queryUpdatep, [rs.rows[0]['referenceid']]);
+
 
         // store the payment received
         await store_orders_paid(rs.rows[0]['referenceid'],api,client,pi.currency,rs.rows[0]['stripeid'],client);
