@@ -391,60 +391,69 @@ async function mainloop(){
             console.log(v);
             return;
         }
-        // check for the same referenceid already present
-        let rs;
-        let client;
-        let status='unknow';
-        try{
-            client=await opendb();
-            const queryText="SELECT * from striperequests where referenceid=$1";
-            rs=await client.query(queryText, [referenceid]);
-
-            //console.log(rs);
-        } catch (e) {
+        let refid=[]
+        if(referenceid.search(",")==-1) {
+            refid.push(referenceid);
+        }else {
+            refid=referenceid.split(",");
+        }
+        let statusa=[];
+        let statusd={};
+        for(referenceid of refid){
+            // check for the same referenceid already present
+            let rs;
+            let client;
+            let status='unknow';
+            try{
+                client=await opendb();
+                const queryText="SELECT * from striperequests where referenceid=$1";
+                rs=await client.query(queryText, [referenceid]);
+            } catch (e) {
                 console.log(e);
                 errorMessage(res,"105 - Error checking payment requests for stripe");
                 await client.end();
                 return;
-        }
-        // status in stripe request
-        if(rs.rows.length>0){
-            status=rs.rows[0].status;
-        }
-        try{
-            const queryText="SELECT * from paymentrequests where referenceid=$1";
-            rs=await client.query(queryText, [referenceid]);
-            //console.log(rs);
-        } catch (e) {
+            }
+            // status in stripe request
+            if(rs.rows.length>0){
+                status=rs.rows[0].status;
+            }
+            try{
+                const queryText="SELECT * from paymentrequests where referenceid=$1";
+                rs=await client.query(queryText, [referenceid]);
+            } catch (e) {
                 console.log(e);
                 errorMessage(res,"106 - Error checking payment requests");
                 await client.end();
                 return;
-        }
-        // status in payment request
-        if(rs.rows.length>0){
-            status='pending';
-        }
-        // check paymentsreceived
-        try{
-            const queryText="SELECT * from paymentsreceived where referenceid=$1";
-            rs=await client.query(queryText, [referenceid]);
-            //console.log(rs);
-        } catch (e) {
+            }
+            // status in payment request
+            if(rs.rows.length>0){
+                status='pending';
+            }
+            // check paymentsreceived
+            try{
+                const queryText="SELECT * from paymentsreceived where referenceid=$1";
+                rs=await client.query(queryText, [referenceid]);
+            } catch (e) {
                 console.log(e);
                 errorMessage(res,"106 - Error checking payment requests");
                 await client.end();
                 return;
-        }
-        // status in payment request
-        if(rs.rows.length>0){
-            if(rs.rows[0].nrvalidation<rs.rows[0].minvalidation)
-                status='validating';
-            if(rs.rows[0].nrvalidation>=rs.rows[0].minvalidation)
-                status='completed';
+            }
+            // status in payment request
+            if(rs.rows.length>0){
+                if(rs.rows[0].nrvalidation<rs.rows[0].minvalidation)
+                    status='validating';
+                if(rs.rows[0].nrvalidation>=rs.rows[0].minvalidation)
+                    status='completed';
+            }
+            statusd.referenceid=referenceid;
+            statusd.status=status;
+            statusa.push(statusd)
         }
         // send back the status found
-        res.status(200).send('{"answer":"OK","status":"'+status+'"}');
+        res.status(200).send('{"answer":"OK","results":'+JSON.stringify(statusa)+'}');
         return;
         
     });
