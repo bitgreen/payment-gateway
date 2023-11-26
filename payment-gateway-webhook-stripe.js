@@ -233,7 +233,7 @@ async function mainloop() {
         }
         // check the amount for matching on chain
          const totorders= await compute_total_order(rs.rows[0]['referenceid'],api);
-         const total_with_fee = new BigNumber(totorders).times(0.029).plus(0.3).multipliedBy(100)
+         const total_with_fee = new BigNumber(totorders).plus(new BigNumber(totorders).times(0.029)).plus(0.3).multipliedBy(100)
             console.log('total_with_fee', total_with_fee.toFixed())
             console.log('pi.amount_received', pi.amount_received)
          if(total_with_fee.toFixed()!=pi.amount_received){
