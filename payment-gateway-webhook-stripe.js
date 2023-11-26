@@ -4,7 +4,7 @@ const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
-
+const { BigNumber } = require('bignumber.js')
 // add crypto module
 const  {decrypt_symmetric} = require('./modules/cryptobitgreen.js');
 const { Buffer } = require('node:buffer');
@@ -189,7 +189,7 @@ async function mainloop() {
           }
           await clientf.end();
           return;
-      case 'payment_intent.succeeded':
+        case 'payment_intent.succeeded':
         console.log('PaymentIntent was successful!');
         // retrieve the event from stripe for security (someone may had submitted a fake one with the correct stripe signature.
         // just additional check with 0 costs to increase the security
@@ -232,8 +232,11 @@ async function mainloop() {
             return;
         }
         // check the amount for matching on chain
-         const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
-         if((totorders*100).toFixed()!=pi.amount_received){
+         const totorders= await compute_total_order(rs.rows[0]['referenceid'],api);
+         const total_with_fee = new BigNumber(totorders).times(0.029).plus(0.3).multipliedBy(100)
+            console.log('total_with_fee', total_with_fee.toFixed())
+            console.log('pi.amount_received', pi.amount_received)
+         if(total_with_fee.toFixed()!=pi.amount_received){
             console.log("105 - ERROR: the payment amount does not match the orders on chain (2): ",(totorders*100).toFixed(),pi.id,rs.rows[0]['amount'],pi.amount_received);
             response.json({received: true});
             await client.end();
