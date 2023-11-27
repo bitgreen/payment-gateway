@@ -232,7 +232,7 @@ async function mainloop() {
         }
         // check the amount for matching on chain
         const totorders= await compute_total_order(rs.rows[0]['referenceid'],api);
-        const total_with_fee = new BigNumber(totorders).plus(new BigNumber(totorders).multipliedBy(0.03)).plus(0.3).multipliedBy(100)
+        const total_with_fee = new BigNumber(totorders).plus(new BigNumber(totorders).multipliedBy(0.02987)).plus(0.3).multipliedBy(100)
         if(parseFloat(total_with_fee.toFixed(0)) > parseFloat(pi.amount_received)){
             console.log("105 - ERROR: the payment amount does not match the orders on chain (2): ",parseFloat(total_with_fee.toFixed(0)),pi.id,parseFloat(new BigNumber(rs.rows[0]['amount']).multipliedBy(100).toFixed(0)), parseFloat(pi.amount_received));
             response.json({received: true});
