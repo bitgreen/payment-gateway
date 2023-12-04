@@ -4,6 +4,7 @@ const fs = require('fs');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
 const { Client } = require('pg');
+const BigNumber = require("bignumber.js");
 
 
 // GLOBAL VARIABLES
@@ -247,7 +248,7 @@ async function mainloop(){
             }
             try {
                 const queryText="SELECT * from paymentrequests where sender=$1 and recipient=$2 and amount=$3 and chainid=$4";
-                amount=transaction['value']/1000000;
+                amount=new BigNumber(transaction['value']).dividedBy(1000000).toFixed();
                 rs=await client.query(queryText, [transaction['from'],transaction['to'],amount,BLOCKCHAINCODE]);
                 if(rs['rowCount']==0){
                     console.log("101 - ERROR referenceid not found");
@@ -261,8 +262,8 @@ async function mainloop(){
             }
             // check the amount for matching on chain 
             const totorders=await compute_total_order(rs.rows[0]['referenceid'],api);
-            if(totorders!=(transaction['value']/1000000)){
-                console.log("103 - ERROR the payment amount does not matcht the orders on chain: ",(transaction['value']/1000000),totorders);
+            if(totorders > new BigNumber(transaction['value']).dividedBy(1000000).toNumber()){
+                console.log("103 - ERROR the payment amount does not matcht the orders on chain: ",(new BigNumber(transaction['value']).dividedBy(1000000).toFixed()),totorders);
                 await client.end();
                 return;
              }
@@ -289,7 +290,7 @@ async function mainloop(){
                     await client.end();
                     return;
                 }
-                fees=Number(bov.totalFee.replace(",",""))/1000;
+                fees=Number(new BigNumber(bov.totalFee.replace(",","").dividedBy(1000)));
                 const assetid=bov.orderId;
                 console.log("Check assetid:",assetid);
                 const ai= await api.query.assets.asset(bov.assetId);
@@ -402,7 +403,7 @@ async function compute_total_order(orderid,api){
     else
         ao=orderid.split(",");
     console.log("orders to check:",ao);
-    let tot=0.0;
+    let tot= new BigNumber(0);
     for(x of ao){
         if(x.length==0)
             continue;
@@ -414,22 +415,22 @@ async function compute_total_order(orderid,api){
             console.log("109 - ERROR",e);
             continue;
         }
-        let amount=0.00;
+        let amount= new BigNumber(0);
         try {
             const amounts=v.totalAmount.replace(/,/g,"");
             if(amounts.length>16)
-                amount=parseFloat(amounts.substring(0,amounts.length-16));
+                amount=new BigNumber(amounts.substring(0,amounts.length-16));
             else {
-                amount=parseFloat(amounts)/10;
+                amount=new BigNumber(amounts).dividedBy(10);
             }
         }catch(e){
             console.log(e);
             continue;
         }
         console.log("total order from chain: ",amount);
-        tot=tot+amount/100;        
+        tot=tot.plus(amount.dividedBy(100));
     }
-    return(tot);
+    return(Number(tot.toFixed(2)));
 }
 // function to open db and return client
 async function opendb(){

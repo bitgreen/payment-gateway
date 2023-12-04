@@ -5,6 +5,7 @@ const fs = require('fs');
 const stripe = require('stripe')('sk_test_51MDq0VKluWo1Xbjw9dB5xdWgGUulDA6ckewLKyz4wdQee6yrxX5QhhJ5oblHgWhVApt2VDOlHH0JxARlaimxnC5s00Laa66Evw');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
+const BigNumber = require("bignumber.js");
 
 console.log("Payment Gateway Settlement 1.0 - Starting");
 // get environment variables
@@ -191,7 +192,7 @@ async function mainloop(){
         const amountpaid=decoded[1];
         const recipient=decoded[0];
         // verify amount
-        if(Number(amountpaid)/1000000!=rs.rows[i].amount){
+        if(new BigNumber(amountpaid).dividedBy(1000000).toNumber() < rs.rows[i].amount){
            let e="The amount on chain is different from the amount in the database";
            throw(e);
         }
@@ -332,7 +333,7 @@ async function make_payment(selleraddress,amount,orders,client,api,keys){
     // create contract object    
     let contract = new web3l.eth.Contract(JSON.parse(ABIJSON), tokenAddress, { from: WALLETADDRESS });
     //convert amount in hex
-    amount=amount*1000000; // 6 decimals
+    amount=new BigNumber(amount).times(1000000).toFixed(); // 6 decimals
     let amounthex = web3l.utils.toHex(amount); 
     console.log(amount,amounthex);
     //encode data
@@ -350,11 +351,12 @@ async function make_payment(selleraddress,amount,orders,client,api,keys){
    const gasLimit = web3.eth.estimateGas(txObj); // fetch gas limit for the tx
    const transactionFee = gasPrice * gasLimit;  // tx fees in native coin Eth/Matic
    // rebuild data and txObj based on the reduced amount and gas limits
+   let cp
    if(paymentmethod=='ethusdt')
        cp=ETHPRICE;
    if(paymentmethod=='polyusdt')
        cp=MATICPRICE;
-   const txfeesusdt=transactionFee/1000000000000*cp;
+   const txfeesusdt= new BigNumber(transactionFee).dividedBy(1000000000000).times(cp).toNumber();
    console.log("tx fees in usdt: ",txfeesusdt," tx fees: ",transactionFee);
    amount=amount-txfeesusdt;
    amounthex = web3l.utils.toHex(amount);
