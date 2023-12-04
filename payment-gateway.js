@@ -404,7 +404,7 @@ async function mainloop(){
             // check for the same referenceid already present
             let rs;
             let client;
-            let status='unknow';
+            let status='unknown';
             try{
                 client=await opendb();
                 const queryText="SELECT * from striperequests where referenceid=$1 or referenceid like $2 or referenceid like $3 or referenceid like $4";
