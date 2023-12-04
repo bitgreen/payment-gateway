@@ -397,6 +397,7 @@ async function mainloop(){
         }else {
             refid=referenceid.split(",");
         }
+        console.log("refid",refid);
         let statusa=[];
         let statusd={};
         for(referenceid of refid){
@@ -406,8 +407,11 @@ async function mainloop(){
             let status='unknow';
             try{
                 client=await opendb();
-                const queryText="SELECT * from striperequests where referenceid=$1";
-                rs=await client.query(queryText, [referenceid]);
+                const queryText="SELECT * from striperequests where referenceid=$1 or referenceid like $2 or referenceid like $3 or referenceid like $4";
+                r2=referenceid+',%';
+                r3='%,'+referenceid+',%';
+                r4='%,'+referenceid;
+                rs=await client.query(queryText, [referenceid,r2,r3,r4]);
             } catch (e) {
                 console.log(e);
                 errorMessage(res,"105 - Error checking payment requests for stripe");
@@ -448,9 +452,13 @@ async function mainloop(){
                 if(rs.rows[0].nrvalidation>=rs.rows[0].minvalidation)
                     status='completed';
             }
+            console.log("processed",referenceid);
+            statusd={};
             statusd.referenceid=referenceid;
             statusd.status=status;
             statusa.push(statusd)
+            console.log("statusa",statusa);
+            
         }
         // send back the status found
         res.status(200).send('{"answer":"OK","results":'+JSON.stringify(statusa)+'}');
