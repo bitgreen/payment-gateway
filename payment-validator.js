@@ -290,7 +290,7 @@ async function mainloop(){
                     await client.end();
                     return;
                 }
-                fees=Number(new BigNumber(bov.totalFee.replace(",","").dividedBy(1000)));
+                fees=new BigNumber(bov.totalFee.replace(",","")).dividedBy(1000).toNumber();
                 const assetid=bov.orderId;
                 console.log("Check assetid:",assetid);
                 const ai= await api.query.assets.asset(bov.assetId);
