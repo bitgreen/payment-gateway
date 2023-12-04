@@ -438,8 +438,11 @@ async function mainloop(){
             }
             // check paymentsreceived
             try{
-                const queryText="SELECT * from paymentsreceived where referenceid=$1";
-                rs=await client.query(queryText, [referenceid]);
+                const queryText="SELECT * from paymentsreceived where referenceid=$1 or referenceid like $2 or referenceid like $3 or referenceid like $4";
+                r2=referenceid+',%';
+                r3='%,'+referenceid+',%';
+                r4='%,'+referenceid;
+                rs=await client.query(queryText, [referenceid, r2, r3, r4]);
             } catch (e) {
                 console.log(e);
                 errorMessage(res,"106 - Error checking payment requests");

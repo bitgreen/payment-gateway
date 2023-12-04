@@ -323,7 +323,7 @@ async function compute_total_order(orderid,api){
     else
         ao=orderid.split(",");
     //console.log(ao);
-    let tot=0.0;
+    let tot= new BigNumber(0);
     for(x of ao){
         if(x.length==0)
             continue;
@@ -336,18 +336,18 @@ async function compute_total_order(orderid,api){
             return;
         }
         //console.log(v);
-        let amount=0.00;
+        let amount= new BigNumber(0);
         try {
             const amounts=v.totalAmount.replace(/,/g,"");
-            amount=parseFloat(amounts.substring(0,amounts.length-16));
+            amount=new BigNumber(amounts.substring(0,amounts.length-16));
         }catch(e){
             console.log("109 - ERROR",e);
             continue;
         }
        // console.log(amount);
-        tot=tot+amount/100;        
+        tot=tot.plus(amount.dividedBy(100));
     }
-    return(tot);
+    return(Number(tot.toFixed(2)));
 }
 
 //function to store the orders paid in the database for future settlement
