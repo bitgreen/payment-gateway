@@ -12,6 +12,7 @@ const { Buffer } = require('node:buffer');
 const { readFileSync } = require('node:fs');
 const prompt = require('prompt-sync')();
 const fetch = require('node-fetch');
+const BigNumber = require("bignumber.js");
 // global vars
 let STRIPEAPIKEY;
 let SUBSTRATE;
@@ -241,7 +242,7 @@ async function mainloop(){
                   {
                     price_data: {
                     currency: 'usd',
-                    product_data: {name: d,},unit_amount: a*100,},quantity: 1,},],
+                    product_data: {name: d,},unit_amount: new BigNumber(a).times(100).toFixed(),},quantity: 1,},],
                     //metadata: {"id":r},
                     mode: 'payment',
                     success_url: rp,
@@ -327,7 +328,7 @@ async function mainloop(){
        try {
               let client = await opendb();
               const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
-              await client.query(queryText, [paymentIntent.id,r,(a/100),status]);
+              await client.query(queryText, [paymentIntent.id,r,(new BigNumber(a).dividedBy(100).toNumber()),status]);
               await client.end();
        } catch (e) {
            errorMessage(res,"104 - Error storing payment request");
@@ -404,7 +405,7 @@ async function mainloop(){
             // check for the same referenceid already present
             let rs;
             let client;
-            let status='unknow';
+            let status='unknown';
             try{
                 client=await opendb();
                 const queryText="SELECT * from striperequests where referenceid=$1 or referenceid like $2 or referenceid like $3 or referenceid like $4";
@@ -437,8 +438,11 @@ async function mainloop(){
             }
             // check paymentsreceived
             try{
-                const queryText="SELECT * from paymentsreceived where referenceid=$1";
-                rs=await client.query(queryText, [referenceid]);
+                const queryText="SELECT * from paymentsreceived where referenceid=$1 or referenceid like $2 or referenceid like $3 or referenceid like $4";
+                r2=referenceid+',%';
+                r3='%,'+referenceid+',%';
+                r4='%,'+referenceid;
+                rs=await client.query(queryText, [referenceid, r2, r3, r4]);
             } catch (e) {
                 console.log(e);
                 errorMessage(res,"106 - Error checking payment requests");
