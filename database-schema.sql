@@ -74,7 +74,8 @@ CREATE TABLE public.striperequests (
     amount numeric(9,2) NOT NULL,
     created_on timestamp without time zone NOT NULL,
     status character varying(16) NOT NULL,
-    statusmessage character varying(64) 
+    statusmessage character varying(64),
+    reason character varying(128)
 );
 
 

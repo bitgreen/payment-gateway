@@ -176,12 +176,14 @@ async function mainloop(){
         let o=req.query.o;
         let dp=req.query.dp;
         let v=req.query.v;
-        // p is the payment method: 
+        let t=req.query.t;
+        // p is the payment method:
         // r is the referenceid
         // rp is the url to redirect for successfully payment
         // rnp is the url to redirect for failed payment
         // d is the description of the purchase
         // o is the origin address on the substrate chain
+        // t is the reason for retirement of carbon credits (optional)
         if(typeof p === 'undefined'){
             errorMessage(res,"ERROR - parameter p (payment method), is missing");
             return;
@@ -224,6 +226,9 @@ async function mainloop(){
         if(typeof v === 'undefined'){
             v="fullview";
         }
+        if(typeof t === 'undefined'){
+            t='';
+        }
         if(typeof p!== 'undefined'){
             res.cookie('p', p);
             res.cookie('a',a);
@@ -234,6 +239,7 @@ async function mainloop(){
             res.cookie('o',o);
             res.cookie('dp',dp);
             res.cookie('v',v);
+            res.cookie('t',t);
             // get url from Stripe
             let stripesession;
             try{
@@ -259,9 +265,9 @@ async function mainloop(){
             // check for the same referenceid already present
             const status="pending";
             try {
-              const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
+              const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status,reason) values($1,$2,$3,current_timestamp,$4,$5)';
               let client= await opendb();
-              await client.query(queryText, [stripesession.id,r,a,status]);
+              await client.query(queryText, [stripesession.id,r,a,status,t]);
               await client.end();
             } catch (e) {
                 console.log(e);
@@ -294,6 +300,7 @@ async function mainloop(){
         let a=req.query.a;
         let r=req.query.r;
         let d=req.query.d;
+        let reason=req.query.reason;
         if(typeof r==='undefined'){
             res.json({error: "ERROR: The reference id is missing, please use parameter r"});
             return;
@@ -305,6 +312,9 @@ async function mainloop(){
         if(typeof d==='undefined'){
             res.json({error: "ERROR: The description is missing, please use parameter d"});
             return;
+        }
+        if(typeof reason==='undefined'){
+            reason='';
         }
         let paymentIntent;
         try {
@@ -327,8 +337,8 @@ async function mainloop(){
        const status="pending";
        try {
               let client = await opendb();
-              const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status) values($1,$2,$3,current_timestamp,$4)';
-              await client.query(queryText, [paymentIntent.id,r,(new BigNumber(a).dividedBy(100).toNumber()),status]);
+              const queryText = 'INSERT INTO striperequests(stripeid,referenceid,amount,created_on,status,reason) values($1,$2,$3,current_timestamp,$4,$5)';
+              await client.query(queryText, [paymentIntent.id,r,(new BigNumber(a).dividedBy(100).toNumber()),status,reason]);
               await client.end();
        } catch (e) {
            errorMessage(res,"104 - Error storing payment request");
@@ -438,11 +448,8 @@ async function mainloop(){
             }
             // check paymentsreceived
             try{
-                const queryText="SELECT * from paymentsreceived where referenceid=$1 or referenceid like $2 or referenceid like $3 or referenceid like $4";
-                r2=referenceid+',%';
-                r3='%,'+referenceid+',%';
-                r4='%,'+referenceid;
-                rs=await client.query(queryText, [referenceid, r2, r3, r4]);
+                const queryText="SELECT * from paymentsreceived where referenceid=$1";
+                rs=await client.query(queryText, [referenceid]);
             } catch (e) {
                 console.log(e);
                 errorMessage(res,"106 - Error checking payment requests");
