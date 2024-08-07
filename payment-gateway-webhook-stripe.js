@@ -251,7 +251,7 @@ async function mainloop() {
         await store_orders_paid(rs.rows[0]['referenceid'],api,client,pi.currency,rs.rows[0]['stripeid'],client);
          
         // validate the payment on bitgreen blockchain
-        await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api,event);
+        await validate_payment(rs.rows[0]['referenceid'],"0",rs.rows[0]['stripeid'],keys,keys2,api,event,rs.rows[0]['reason']);
         //close db connection
         await client.end();        
         break;
@@ -269,7 +269,7 @@ async function mainloop() {
   app.listen(4242, () => console.log('Webhook listening  on port 4242 '));
 }
 // function to submit the transaction to the blockchain
-async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
+async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event,reason){
     let ao=[];
     if(orderid.search(",")==-1)
         ao.push(orderid);
@@ -282,7 +282,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
 
 	// Sign and send the transaction using our account with nonce to consider the queue
 	try{
-            const validate = api.tx.dex.validateBuyOrder(x,blockchainid,tx);
+            const validate = api.tx.dex.validateBuyOrder(x,blockchainid,tx,reason);
             const hash = await validate.signAndSend(keys,{ nonce: -1 });
             console.log("Validation submitted tx: ",hash.toHex());
 	}catch(e){
@@ -300,7 +300,7 @@ async function validate_payment(orderid,blockchainid,tx,keys,keys2,api,event){
         }
         if(event.id==eventv.id){
             try{
-                const validate2 = api.tx.dex.validateBuyOrder(x,blockchainid,tx);
+                const validate2 = api.tx.dex.validateBuyOrder(x,blockchainid,tx,reason);
                 // Sign and send the transaction using our account
                 const hash2 = await validate2.signAndSend(keys2,{ nonce: -1 });
                 console.log("Validation submitted tx: ",hash2.toHex(),"order id: ",orderid);
