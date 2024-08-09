@@ -194,17 +194,12 @@ async function mainloop() {
                 // retrieve the event from stripe for security (someone may had submitted a fake one with the correct stripe signature.
                 // just additional check with 0 costs to increase the security
                 const eventv = await stripe.events.retrieve(event.id);
-
-                console.log('eventv', eventv)
-                console.log('eventv s', JSON.stringify(eventv))
-
                 //TODO: check "livemode" should be true (now we accept from sandbox)
                 const pi = eventv.data.object;
                 let client = await opendb();
                 // search for the matching payment request
                 let rs;
                 try {
-
                     const queryText = "SELECT * from striperequests where stripeid=$1";
                     rs = await client.query(queryText, [pi.id]);
                     //console.log(rs);
@@ -237,7 +232,19 @@ async function mainloop() {
                 // check the amount for matching on chain
                 const totorders = await compute_total_order(rs.rows[0]['referenceid'], api);
 
-                const total_with_fee = new BigNumber(totorders).plus(new BigNumber(totorders).multipliedBy(0.02999)).plus(0.3).multipliedBy(100)
+                let fee = new BigNumber(0)
+
+                if(pi.payment_method_types.includes('us_bank_account')) {
+                    fee = new BigNumber(totorders).times(0.0081)
+                } else if(pi.payment_method_types.includes('card')) {
+                    fee = new BigNumber(totorders).multipliedBy(0.02999).plus(0.3)
+                }
+
+                console.log('fee', fee)
+
+                const total_with_fee = new BigNumber(totorders).plus(fee).multipliedBy(100)
+
+                console.log('new total with fee', total_with_fee)
 
                 if (parseFloat(total_with_fee.toFixed(0)) > parseFloat(pi.amount_received)) {
                     console.log("105 - ERROR: the payment amount does not match the orders on chain (2): ", parseFloat(total_with_fee.toFixed(0)), pi.id, parseFloat(new BigNumber(rs.rows[0]['amount']).multipliedBy(100).toFixed(0)), parseFloat(pi.amount_received));
