@@ -233,18 +233,16 @@ async function mainloop() {
                 const totorders = await compute_total_order(rs.rows[0]['referenceid'], api);
 
                 let fee = new BigNumber(0)
-
+                let chainId = 0
                 if(pi.payment_method_types.includes('us_bank_account')) {
+                    chainId = 2
                     fee = new BigNumber(totorders).times(0.0081)
                 } else if(pi.payment_method_types.includes('card')) {
+                    chainId = 0
                     fee = new BigNumber(totorders).multipliedBy(0.02999).plus(0.3)
                 }
 
-                console.log('fee', fee)
-
                 const total_with_fee = new BigNumber(totorders).plus(fee).multipliedBy(100)
-
-                console.log('new total with fee', total_with_fee)
 
                 if (parseFloat(total_with_fee.toFixed(0)) > parseFloat(pi.amount_received)) {
                     console.log("105 - ERROR: the payment amount does not match the orders on chain (2): ", parseFloat(total_with_fee.toFixed(0)), pi.id, parseFloat(new BigNumber(rs.rows[0]['amount']).multipliedBy(100).toFixed(0)), parseFloat(pi.amount_received));
@@ -264,7 +262,7 @@ async function mainloop() {
                 await store_orders_paid(rs.rows[0]['referenceid'], api, client, pi.currency, rs.rows[0]['stripeid'], client);
 
                 // validate the payment on bitgreen blockchain
-                await validate_payment(rs.rows[0]['referenceid'], "0", rs.rows[0]['stripeid'], keys, keys2, api, event, rs.rows[0]['reason']);
+                await validate_payment(rs.rows[0]['referenceid'], chainId, rs.rows[0]['stripeid'], keys, keys2, api, event, rs.rows[0]['reason']);
                 //close db connection
                 await client.end();
                 break;
