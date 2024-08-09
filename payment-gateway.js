@@ -301,6 +301,7 @@ async function mainloop(){
         let r=req.query.r;
         let d=req.query.d;
         let reason=req.query.reason;
+        let method=req.query.method;
         if(typeof r==='undefined'){
             res.json({error: "ERROR: The reference id is missing, please use parameter r"});
             return;
@@ -316,16 +317,31 @@ async function mainloop(){
         if(typeof reason==='undefined'){
             reason='';
         }
+
         let paymentIntent;
+        let paymentIntentParams = {
+            automatic_payment_methods: {
+                enabled: true,
+            }
+        }
+        if(method === 'WIRE') {
+            paymentIntentParams = {
+                payment_method_types: ['us_bank_account']
+            }
+        } else if(method === 'CARD') {
+            paymentIntentParams = {
+                payment_method_types: ['card']
+            }
+        }
+
         try {
-                paymentIntent = await stripe.paymentIntents.create({
-                  amount: a,
-                  currency: 'usd',
-                  description: d,
-                  metadata: {referencid: r,},
-                  automatic_payment_methods: {
-                  enabled: true,
-             },});
+            paymentIntent = await stripe.paymentIntents.create({
+                amount: a,
+                currency: 'usd',
+                description: d,
+                metadata: {referenceid: r},
+                ...paymentIntentParams,
+            });
         }catch(e){
             errorMessage(res,"103 - Error connecting to the payment gateway");
             console.log("e",e);
